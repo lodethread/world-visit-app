@@ -1,0 +1,12 @@
+[
+  {"place_code":"JP","type":"sovereign","name_ja":"日本","name_en":"Japan","is_active":true,"sort_order":10,"draw_order":400,"geometry_id":"JP"},
+  {"place_code":"US","type":"sovereign","name_ja":"米国","name_en":"United States","is_active":true,"sort_order":20,"draw_order":390,"geometry_id":"US"},
+  {"place_code":"HK","type":"territory","name_ja":"香港","name_en":"Hong Kong","is_active":true,"sort_order":30,"draw_order":380,"geometry_id":"HK"},
+  {"place_code":"MO","type":"territory","name_ja":"マカオ","name_en":"Macau","is_active":true,"sort_order":40,"draw_order":370,"geometry_id":"MO"},
+  {"place_code":"PR","type":"territory","name_ja":"プエルトリコ","name_en":"Puerto Rico","is_active":true,"sort_order":50,"draw_order":360,"geometry_id":"PR"},
+  {"place_code":"TW","type":"territory","name_ja":"台湾","name_en":"Taiwan","is_active":true,"sort_order":60,"draw_order":350,"geometry_id":"TW"},
+  {"place_code":"PS","type":"territory","name_ja":"パレスチナ","name_en":"Palestine","is_active":true,"sort_order":70,"draw_order":340,"geometry_id":"PS"},
+  {"place_code":"EH","type":"territory","name_ja":"西サハラ","name_en":"Western Sahara","is_active":true,"sort_order":80,"draw_order":330,"geometry_id":"EH"},
+  {"place_code":"XK","type":"territory","name_ja":"コソボ","name_en":"Kosovo","is_active":true,"sort_order":90,"draw_order":320,"geometry_id":"XK"},
+  {"place_code":"XNC","type":"territory","name_ja":"経国値","name_en":"Keikoku","is_active":true,"sort_order":100,"draw_order":310,"geometry_id":"XNC"}
+]

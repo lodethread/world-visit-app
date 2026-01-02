@@ -8,12 +8,16 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:world_visit_app/app/app.dart';
+import 'package:world_visit_app/app/bootstrap/place_sync_service.dart';
 
 void main() {
   testWidgets('Main tabs show Map, Trips, and Settings views', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const WorldVisitApp());
+    await tester.pumpWidget(
+      WorldVisitApp(syncService: _ImmediatePlaceSyncService()),
+    );
+    await tester.pumpAndSettle();
 
     expect(find.text('Map'), findsWidgets);
     expect(find.text('Trips'), findsWidgets);
@@ -27,4 +31,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Settings'), findsWidgets);
   });
+}
+
+class _ImmediatePlaceSyncService extends PlaceSyncService {
+  _ImmediatePlaceSyncService()
+    : super(openDatabase: () async => throw UnimplementedError());
+
+  @override
+  Future<void> syncIfNeeded() async {}
 }
