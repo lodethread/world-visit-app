@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 BASE64_FILE="${SCRIPT_DIR}/source.png.b64"
 PNG_FILE="${SCRIPT_DIR}/source.png"
 
@@ -16,5 +16,5 @@ python3 -c 'import base64, pathlib, sys; src=pathlib.Path(sys.argv[1]); dst=path
 
 (
   cd "${ROOT_DIR}"
-  dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
+  dart run flutter_launcher_icons --file "${ROOT_DIR}/flutter_launcher_icons.yaml"
 )
