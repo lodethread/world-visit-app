@@ -12,7 +12,11 @@ if [[ ! -f "${BASE64_FILE}" ]]; then
 fi
 
 mkdir -p "${ICON_DIR}"
-base64 -d "${BASE64_FILE}" > "${PNG_FILE}"
+python3 - <<'PY'
+import base64, pathlib
+b64 = pathlib.Path(r"""'"${BASE64_FILE}"'""").read_text().strip()
+pathlib.Path(r"""'"${PNG_FILE}"'""").write_bytes(base64.b64decode(b64))
+PY
 
 (
   cd "${ROOT_DIR}"
