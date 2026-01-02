@@ -1,6 +1,5 @@
 import 'package:sqflite/sqflite.dart';
 
-import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 
 class PlaceDetailData {
@@ -54,8 +53,7 @@ Future<PlaceDetailData?> loadPlaceDetail(Database db, String placeCode) async {
   final visitTagRows = await db.query('visit_tag');
   final tagRows = await db.query('tag');
   final tagLookup = {
-    for (final row in tagRows)
-      row['tag_id'] as String: row['name'] as String,
+    for (final row in tagRows) row['tag_id'] as String: row['name'] as String,
   };
   final visitTags = <String, List<String>>{};
   for (final row in visitTagRows) {
@@ -66,9 +64,8 @@ Future<PlaceDetailData?> loadPlaceDetail(Database db, String placeCode) async {
   final visits = <VisitDetail>[];
   for (final row in visitRows) {
     final visit = VisitRecord.fromMap(row);
-    final tags = visitTags[visit.visitId]
-            ?.map((id) => tagLookup[id] ?? id)
-            .toList() ??
+    final tags =
+        visitTags[visit.visitId]?.map((id) => tagLookup[id] ?? id).toList() ??
         const [];
     visits.add(VisitDetail(visit: visit, tags: tags));
   }
