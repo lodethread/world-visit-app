@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:world_visit_app/features/import_export/ui/data_management_page.dart';
+import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/place_picker/place_picker_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -27,15 +28,17 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.place_outlined),
             title: const Text('Pick place (debug)'),
-            subtitle: const Text('PlacePicker 動作確認用'),
+            subtitle: const Text('Place詳細表示を確認'),
             onTap: () async {
               final result = await Navigator.of(context).push<String>(
                 MaterialPageRoute(builder: (_) => const PlacePickerPage()),
               );
               if (result != null && context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Selected $result')));
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PlaceDetailPage(placeCode: result),
+                  ),
+                );
               }
             },
           ),
