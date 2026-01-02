@@ -15,10 +15,13 @@ pluginManagement {
     repositories {
         google()
         maven {
+            url = uri("https://storage.googleapis.com/download.flutter.io")
+        }
+        maven {
             url = uri("https://repo1.maven.org/maven2")
         }
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
     }
 }
 
@@ -26,6 +29,9 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
+        maven {
+            url = uri("https://storage.googleapis.com/download.flutter.io")
+        }
         maven {
             url = uri("https://repo1.maven.org/maven2")
         }
