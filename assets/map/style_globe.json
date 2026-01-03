@@ -1,0 +1,13 @@
+{
+  "version": 8,
+  "name": "Keikoku Globe",
+  "projection": { "name": "globe" },
+  "sources": {},
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": { "background-color": "#020b16" }
+    }
+  ]
+}
