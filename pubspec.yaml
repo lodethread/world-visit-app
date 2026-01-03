@@ -71,6 +71,7 @@ flutter:
     - assets/places/place_master.json
     - assets/places/place_aliases.json
     - assets/places/place_master_meta.json
+    - assets/places/places.geojson.gz
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
