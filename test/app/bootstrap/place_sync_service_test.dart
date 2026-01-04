@@ -8,6 +8,7 @@ import 'package:world_visit_app/data/place_assets/place_assets_loader.dart';
 
 void main() {
   sqfliteFfiInit();
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   test('sync inserts places, stats, and meta hash', () async {
     final databaseFactory = databaseFactoryFfi;
@@ -58,6 +59,35 @@ void main() {
       whereArgs: ['place_master_hash'],
     );
     expect(meta.single['value'], 'hash-1');
+    await db.close();
+    await databaseFactory.deleteDatabase(dbPath);
+  });
+
+  test('sync stores world data set (>=100 places)', () async {
+    final databaseFactory = databaseFactoryFfi;
+    final dbDir = await databaseFactory.getDatabasesPath();
+    final dbPath = p.join(dbDir, 'place_sync_world.db');
+    await databaseFactory.deleteDatabase(dbPath);
+
+    final appDatabase = AppDatabase(factory: databaseFactoryFfi);
+    final loader = PlaceAssetsLoader();
+    final service = PlaceSyncService(
+      openDatabase: () => appDatabase.open(path: dbPath),
+      assetsLoader: loader,
+    );
+
+    await service.syncIfNeeded();
+    await service.syncIfNeeded();
+
+    final db = await appDatabase.open(path: dbPath);
+    final places = await db.query('place');
+    expect(places.length, greaterThanOrEqualTo(100));
+    final meta = await db.query(
+      'meta',
+      where: 'key = ?',
+      whereArgs: ['place_master_hash'],
+    );
+    expect(meta.single['value'], isNotNull);
     await db.close();
     await databaseFactory.deleteDatabase(dbPath);
   });

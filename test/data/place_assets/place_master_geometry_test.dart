@@ -48,4 +48,15 @@ void main() {
     );
     expect(entry['geometry_id'], 'XK');
   });
+
+  test('place master contains required territories', () {
+    const requiredCodes = ['HK', 'MO', 'PR', 'TW', 'PS', 'EH'];
+    for (final code in requiredCodes) {
+      expect(
+        entries.any((entry) => entry['place_code'] == code),
+        isTrue,
+        reason: '$code must exist in place master',
+      );
+    }
+  });
 }
