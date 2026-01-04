@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -25,6 +26,7 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   bool _isGlobe = false;
   bool _loading = true;
+  final FlatMapLoader _mapLoader = FlatMapLoader();
   final TransformationController _transformationController =
       TransformationController();
   final WebMercatorProjection _projection = const WebMercatorProjection();
@@ -32,7 +34,7 @@ class _MapPageState extends State<MapPage> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
   MapLod _lod = MapLod.coarse110m;
-  final List<MapPolygon> _polygons = [];
+  MapLod _desiredLod = MapLod.coarse110m;
   final Map<String, _PlaceLabel> _labels = {};
   final Map<String, int> _levels = {};
   final Map<String, int> _visitCounts = {};
@@ -42,12 +44,16 @@ class _MapPageState extends State<MapPage> {
   FlatMapDataset? _dataset110m;
   FlatMapDataset? _dataset50m;
   FlatMapDataset? _activeDataset;
+  Future<FlatMapDataset>? _loadingFineDataset;
   int _totalScore = 0;
   Size? _viewportSize;
   Database? _db;
   VisitRepository? _visitRepository;
   TagRepository? _tagRepository;
   MapSelectionSheetData? _selectionData;
+  int _debugCandidateCount = 0;
+  int _debugParsedFeatures = 0;
+  int _debugDrawnPolygons = 0;
 
   @override
   void initState() {
@@ -66,20 +72,7 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _loadData() async {
-    final loader = FlatMapLoader();
-    final datasets = await Future.wait([
-      loader.loadCountries110m(),
-      loader.loadCountries50m(),
-    ]);
-    final dataset110m = datasets[0];
-    final dataset50m = datasets[1];
-    final drawOrders = <String, double>{};
-    for (final polygon in dataset50m.polygons) {
-      final existing = drawOrders[polygon.geometryId];
-      if (existing == null || polygon.drawOrder > existing) {
-        drawOrders[polygon.geometryId] = polygon.drawOrder;
-      }
-    }
+    final dataset110m = _dataset110m ?? await _mapLoader.loadCountries110m();
     final db = _db ?? await AppDatabase().open();
     _db ??= db;
     _visitRepository ??= VisitRepository(db);
@@ -87,86 +80,154 @@ class _MapPageState extends State<MapPage> {
     final placeRows = await db.query('place');
     final statsRows = await db.query('place_stats');
     final geometryToPlace = <String, String>{};
-    _labels
-      ..clear()
-      ..addEntries(
-        placeRows.map(
-          (row) => MapEntry(
-            row['place_code'] as String,
-            _PlaceLabel(
-              nameJa: row['name_ja'] as String,
-              nameEn: row['name_en'] as String,
-            ),
-          ),
-        ),
-      );
+    final labels = <String, _PlaceLabel>{};
     for (final row in placeRows) {
-      final geometryId = row['geometry_id']?.toString();
       final placeCode = row['place_code']?.toString();
-      if (geometryId == null || geometryId.isEmpty || placeCode == null) {
+      if (placeCode == null) {
+        continue;
+      }
+      labels[placeCode] = _PlaceLabel(
+        nameJa: row['name_ja'] as String,
+        nameEn: row['name_en'] as String,
+      );
+      final geometryId = row['geometry_id']?.toString();
+      if (geometryId == null || geometryId.isEmpty) {
         continue;
       }
       geometryToPlace[geometryId] = placeCode;
     }
-    _levels.clear();
     final visitCounts = <String, int>{};
     int total = 0;
+    final levels = <String, int>{};
     for (final row in statsRows) {
       final level = (row['max_level'] as int?) ?? 0;
       final placeCode = row['place_code'] as String;
-      _levels[placeCode] = level;
+      levels[placeCode] = level;
       visitCounts[placeCode] = (row['visit_count'] as int?) ?? 0;
       total += level;
     }
     final selectedPlace = _selectionData?.placeCode;
     setState(() {
-      _dataset110m = dataset110m;
-      _dataset50m = dataset50m;
-      _applyDataset(_lod);
-      _drawOrders
+      _dataset110m ??= dataset110m;
+      _labels
         ..clear()
-        ..addAll(drawOrders);
-      _geometryToPlace = geometryToPlace;
+        ..addAll(labels);
+      _levels
+        ..clear()
+        ..addAll(levels);
       _visitCounts
         ..clear()
         ..addAll(visitCounts);
+      _geometryToPlace = geometryToPlace;
       _totalScore = total;
       _loading = false;
+      _drawOrders.clear();
+      _updateDrawOrdersFromDataset(_dataset110m!);
+      final fine = _dataset50m;
+      if (fine != null) {
+        _updateDrawOrdersFromDataset(fine);
+      }
+      _refreshActiveDatasetLocked();
     });
+    if (_desiredLod == MapLod.fine50m) {
+      unawaited(_ensureFineDatasetLoaded());
+    }
     if (selectedPlace != null && mounted) {
       await _selectPlace(selectedPlace, animateSheet: false);
     }
   }
 
-  void _applyDataset(MapLod lod) {
-    final dataset = lod == MapLod.coarse110m ? _dataset110m : _dataset50m;
+  void _refreshActiveDatasetLocked() {
+    if (_lod == MapLod.fine50m && _dataset50m == null) {
+      _lod = MapLod.coarse110m;
+    }
+    final dataset = _lod == MapLod.fine50m ? _dataset50m : _dataset110m;
     if (dataset == null) {
       return;
     }
+    _setActiveDataset(dataset);
+  }
+
+  void _setActiveDataset(FlatMapDataset dataset) {
     _activeDataset = dataset;
-    _polygons
-      ..clear()
-      ..addAll(dataset.polygons);
     _geometryBounds = dataset.boundsByGeometry;
+    if (!kReleaseMode) {
+      _debugParsedFeatures = dataset.geometries.length;
+      _debugDrawnPolygons = dataset.polygons.length;
+    }
+  }
+
+  void _activateLod(MapLod lod) {
+    final dataset = lod == MapLod.fine50m ? _dataset50m : _dataset110m;
+    if (dataset == null) {
+      return;
+    }
+    setState(() {
+      _lod = lod;
+      _setActiveDataset(dataset);
+    });
+  }
+
+  double? _estimateLonSpan() {
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    if (scale <= 0) {
+      return null;
+    }
+    return 360.0 / scale;
+  }
+
+  Future<void> _ensureFineDatasetLoaded() async {
+    if (_dataset50m != null || _loadingFineDataset != null) {
+      return;
+    }
+    final future = _mapLoader.loadCountries50m();
+    _loadingFineDataset = future;
+    try {
+      final dataset = await future;
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _dataset50m = dataset;
+        _updateDrawOrdersFromDataset(dataset);
+      });
+      if (_desiredLod == MapLod.fine50m) {
+        _activateLod(MapLod.fine50m);
+      }
+    } finally {
+      if (identical(_loadingFineDataset, future)) {
+        _loadingFineDataset = null;
+      }
+    }
+  }
+
+  void _updateDrawOrdersFromDataset(FlatMapDataset dataset) {
+    for (final polygon in dataset.polygons) {
+      final existing = _drawOrders[polygon.geometryId];
+      if (existing == null || polygon.drawOrder > existing) {
+        _drawOrders[polygon.geometryId] = polygon.drawOrder;
+      }
+    }
   }
 
   void _handleViewportChanged() {
-    if (_dataset110m == null || _dataset50m == null) {
+    if (_dataset110m == null) {
       return;
     }
-    final scale = _transformationController.value.getMaxScaleOnAxis();
-    if (scale <= 0) {
+    final lonSpan = _estimateLonSpan();
+    if (lonSpan == null) {
       return;
     }
-    final lonSpan = 360.0 / scale;
     final nextLod = _lodResolver.resolve(lonSpan, _lod);
     if (nextLod == _lod) {
       return;
     }
-    setState(() {
-      _lod = nextLod;
-      _applyDataset(nextLod);
-    });
+    _desiredLod = nextLod;
+    if (nextLod == MapLod.fine50m && _dataset50m == null) {
+      _ensureFineDatasetLoaded();
+      return;
+    }
+    _activateLod(nextLod);
   }
 
   Future<void> _handleLongPress(Offset position) async {
@@ -184,32 +245,27 @@ class _MapPageState extends State<MapPage> {
   }
 
   List<_PlaceCandidate> _hitTestCandidates(Offset position) {
-    final size = _viewportSize;
     final dataset = _activeDataset;
-    if (size == null || dataset == null || _polygons.isEmpty) {
+    if (dataset == null) {
+      _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
-    final scenePoint = _transformationController.toScene(position);
-    final normalized = Offset(
-      scenePoint.dx / size.width,
-      scenePoint.dy / size.height,
-    );
-    if (normalized.dx.isNaN ||
-        normalized.dy.isNaN ||
-        normalized.dx < 0 ||
-        normalized.dx > 1 ||
-        normalized.dy < 0 ||
-        normalized.dy > 1) {
+    final normalized = _normalizedFromLocal(position);
+    if (normalized == null) {
+      _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
     final geoPoint = _projection.unproject(normalized);
-    final geometryIds = <String>[];
-    _geometryBounds.forEach((geometryId, bounds) {
-      if (bounds.contains(geoPoint.dx, geoPoint.dy)) {
-        geometryIds.add(geometryId);
-      }
-    });
+    final geometryIds = <String>{...dataset.spatialIndex.query(normalized)};
     if (geometryIds.isEmpty) {
+      _geometryBounds.forEach((geometryId, bounds) {
+        if (bounds.contains(geoPoint.dx, geoPoint.dy)) {
+          geometryIds.add(geometryId);
+        }
+      });
+    }
+    if (geometryIds.isEmpty) {
+      _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
     final Map<String, _PlaceCandidate> aggregated = {};
@@ -218,9 +274,12 @@ class _MapPageState extends State<MapPage> {
       if (placeCode == null) {
         continue;
       }
-      final polygons = dataset.geometries[geometryId]?.polygons ?? const [];
+      final geometry = dataset.geometries[geometryId];
+      if (geometry == null) {
+        continue;
+      }
       bool hit = false;
-      for (final polygon in polygons) {
+      for (final polygon in geometry.polygons) {
         if (polygon.containsPoint(normalized)) {
           hit = true;
           break;
@@ -229,10 +288,7 @@ class _MapPageState extends State<MapPage> {
       if (!hit) {
         continue;
       }
-      final drawOrder =
-          _drawOrders[geometryId] ??
-          dataset.geometries[geometryId]?.drawOrder ??
-          0;
+      final drawOrder = _drawOrders[geometryId] ?? geometry.drawOrder;
       final displayName = _displayName(placeCode);
       final existing = aggregated[placeCode];
       if (existing == null || drawOrder > existing.drawOrder) {
@@ -251,6 +307,7 @@ class _MapPageState extends State<MapPage> {
         }
         return a.displayName.compareTo(b.displayName);
       });
+    _updateCandidateDebug(candidates.length);
     return candidates;
   }
 
@@ -281,6 +338,37 @@ class _MapPageState extends State<MapPage> {
         );
       },
     );
+  }
+
+  Offset? _normalizedFromLocal(Offset position) {
+    final size = _viewportSize;
+    if (size == null || size.isEmpty) {
+      return null;
+    }
+    final scenePoint = _transformationController.toScene(position);
+    final normalized = Offset(
+      scenePoint.dx / size.width,
+      scenePoint.dy / size.height,
+    );
+    if (normalized.dx.isNaN ||
+        normalized.dy.isNaN ||
+        normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
+      return null;
+    }
+    return normalized;
+  }
+
+  void _updateCandidateDebug(int count) {
+    if (kReleaseMode || !mounted || _debugCandidateCount == count) {
+      _debugCandidateCount = count;
+      return;
+    }
+    setState(() {
+      _debugCandidateCount = count;
+    });
   }
 
   Future<void> _selectPlace(
@@ -488,7 +576,8 @@ class _MapPageState extends State<MapPage> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_polygons.isEmpty) {
+    final dataset = _activeDataset;
+    if (dataset == null || dataset.polygons.isEmpty) {
       return const Center(child: Text('地図データがありません'));
     }
     return LayoutBuilder(
@@ -496,7 +585,7 @@ class _MapPageState extends State<MapPage> {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         _viewportSize = size;
         final painter = _FlatMapPainter(
-          polygons: _polygons,
+          polygons: dataset.polygons,
           levels: _levels,
           colorResolver: _colorForLevel,
           geometryToPlace: _geometryToPlace,
@@ -546,6 +635,39 @@ class _MapPageState extends State<MapPage> {
       onDuplicateVisit: _duplicateVisitFromSheet,
       onOpenDetail: _openDetailFromSheet,
       onClose: _clearSelection,
+    );
+  }
+
+  Widget _buildDebugOverlay() {
+    if (kReleaseMode) {
+      return const SizedBox.shrink();
+    }
+    final lodLabel = _lod == MapLod.coarse110m ? '110m' : '50m';
+    return Positioned(
+      bottom: 16,
+      right: 16,
+      child: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              height: 1.2,
+            ),
+            child: Text(
+              'LOD: $lodLabel\n'
+              'Parsed: $_debugParsedFeatures\n'
+              'Polygons: $_debugDrawnPolygons\n'
+              'Candidates: $_debugCandidateCount',
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -635,6 +757,7 @@ class _MapPageState extends State<MapPage> {
               right: 16,
               child: SafeArea(child: MapLegendOverlay(entries: _legendEntries)),
             ),
+            if (!kReleaseMode) _buildDebugOverlay(),
             if (_selectionData != null) _buildSelectionSheet(),
           ],
         ),
@@ -660,16 +783,24 @@ class _FlatMapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) {
+      return;
+    }
     final fillPaint = Paint()..style = PaintingStyle.fill;
+    final scaleX = size.width;
+    final scaleY = size.height;
+    final strokeScale = (scaleX + scaleY) / 2.0;
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.white.withValues(alpha: 0.4)
-      ..strokeWidth = 0.5;
+      ..strokeWidth = strokeScale == 0 ? 0 : 1.0 / strokeScale;
     final highlightStrokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.white
-      ..strokeWidth = 2.4;
+      ..strokeWidth = strokeScale == 0 ? 0 : 2.5 / strokeScale;
 
+    canvas.save();
+    canvas.scale(scaleX, scaleY);
     for (final polygon in polygons) {
       final placeCode = geometryToPlace[polygon.geometryId];
       if (placeCode == null) {
@@ -681,29 +812,11 @@ class _FlatMapPainter extends CustomPainter {
       fillPaint.color = isSelected
           ? baseColor
           : baseColor.withValues(alpha: 0.85);
-      final path = _buildPath(polygon, size);
+      final path = polygon.path;
       canvas.drawPath(path, fillPaint);
       canvas.drawPath(path, isSelected ? highlightStrokePaint : strokePaint);
     }
-  }
-
-  Path _buildPath(MapPolygon polygon, Size size) {
-    final path = Path()..fillType = PathFillType.evenOdd;
-    for (final ring in polygon.rings) {
-      if (ring.isEmpty) continue;
-      final first = _scaleOffset(ring.first, size);
-      path.moveTo(first.dx, first.dy);
-      for (int k = 1; k < ring.length; k++) {
-        final pt = _scaleOffset(ring[k], size);
-        path.lineTo(pt.dx, pt.dy);
-      }
-      path.close();
-    }
-    return path;
-  }
-
-  Offset _scaleOffset(Offset offset, Size size) {
-    return Offset(offset.dx * size.width, offset.dy * size.height);
+    canvas.restore();
   }
 
   @override
