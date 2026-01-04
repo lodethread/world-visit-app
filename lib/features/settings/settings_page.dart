@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:world_visit_app/features/import_export/ui/data_management_page.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/place_picker/place_picker_page.dart';
+import 'package:world_visit_app/features/settings/data_sources_page.dart';
 import 'package:world_visit_app/features/stats/stats_page.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -35,6 +36,17 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const DataManagementPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About / Data sources'),
+            subtitle: const Text('Natural Earth / world-atlas / tool scripts'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DataSourcesPage()),
               );
             },
           ),
