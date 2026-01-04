@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:world_visit_app/data/db/app_database.dart';
+import 'package:world_visit_app/data/db/tag_repository.dart';
+import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
+import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
+import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -23,10 +27,13 @@ class _MapPageState extends State<MapPage> {
       TransformationController();
   final WebMercatorProjection _projection = const WebMercatorProjection();
   final MapLodResolver _lodResolver = const MapLodResolver();
+  final DraggableScrollableController _sheetController =
+      DraggableScrollableController();
   MapLod _lod = MapLod.coarse110m;
   final List<MapPolygon> _polygons = [];
   final Map<String, _PlaceLabel> _labels = {};
   final Map<String, int> _levels = {};
+  final Map<String, int> _visitCounts = {};
   final Map<String, double> _drawOrders = {};
   Map<String, GeoBounds> _geometryBounds = const <String, GeoBounds>{};
   Map<String, String> _geometryToPlace = const <String, String>{};
@@ -36,6 +43,9 @@ class _MapPageState extends State<MapPage> {
   int _totalScore = 0;
   Size? _viewportSize;
   Database? _db;
+  VisitRepository? _visitRepository;
+  TagRepository? _tagRepository;
+  MapSelectionSheetData? _selectionData;
 
   @override
   void initState() {
@@ -48,6 +58,7 @@ class _MapPageState extends State<MapPage> {
   void dispose() {
     _transformationController.removeListener(_handleViewportChanged);
     _transformationController.dispose();
+    _sheetController.dispose();
     _db?.close();
     super.dispose();
   }
@@ -69,6 +80,8 @@ class _MapPageState extends State<MapPage> {
     }
     final db = _db ?? await AppDatabase().open();
     _db ??= db;
+    _visitRepository ??= VisitRepository(db);
+    _tagRepository ??= TagRepository(db);
     final placeRows = await db.query('place');
     final statsRows = await db.query('place_stats');
     final geometryToPlace = <String, String>{};
@@ -94,12 +107,16 @@ class _MapPageState extends State<MapPage> {
       geometryToPlace[geometryId] = placeCode;
     }
     _levels.clear();
+    final visitCounts = <String, int>{};
     int total = 0;
     for (final row in statsRows) {
       final level = (row['max_level'] as int?) ?? 0;
-      _levels[row['place_code'] as String] = level;
+      final placeCode = row['place_code'] as String;
+      _levels[placeCode] = level;
+      visitCounts[placeCode] = (row['visit_count'] as int?) ?? 0;
       total += level;
     }
+    final selectedPlace = _selectionData?.placeCode;
     setState(() {
       _dataset110m = dataset110m;
       _dataset50m = dataset50m;
@@ -108,9 +125,15 @@ class _MapPageState extends State<MapPage> {
         ..clear()
         ..addAll(drawOrders);
       _geometryToPlace = geometryToPlace;
+      _visitCounts
+        ..clear()
+        ..addAll(visitCounts);
       _totalScore = total;
       _loading = false;
     });
+    if (selectedPlace != null && mounted) {
+      await _selectPlace(selectedPlace, animateSheet: false);
+    }
   }
 
   void _applyDataset(MapLod lod) {
@@ -152,20 +175,10 @@ class _MapPageState extends State<MapPage> {
     final selectedCode = candidates.length == 1
         ? candidates.first.placeCode
         : await _showCandidateSheet(candidates);
-    if (selectedCode == null ||
-        !_labels.containsKey(selectedCode) ||
-        !mounted) {
+    if (selectedCode == null || !_labels.containsKey(selectedCode)) {
       return;
     }
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PlaceDetailPage(placeCode: selectedCode),
-      ),
-    );
-    if (mounted) {
-      setState(() => _loading = true);
-      await _loadData();
-    }
+    await _selectPlace(selectedCode);
   }
 
   List<_PlaceCandidate> _hitTestCandidates(Offset position) {
@@ -268,6 +281,56 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  Future<void> _selectPlace(
+    String placeCode, {
+    bool animateSheet = true,
+  }) async {
+    await _ensureRepositories();
+    final latestVisit = await _visitRepository?.latestVisitForPlace(placeCode);
+    if (!mounted) return;
+    final level = _levels[placeCode] ?? 0;
+    final details = MapSelectionSheetData(
+      placeCode: placeCode,
+      displayName: _displayName(placeCode),
+      level: level,
+      levelLabel: _levelLabel(level),
+      levelColor: _colorForLevel(level),
+      visitCount: _visitCounts[placeCode] ?? 0,
+      latestVisit: latestVisit,
+    );
+    setState(() {
+      _selectionData = details;
+    });
+    if (animateSheet) {
+      _expandSheet();
+    }
+  }
+
+  Future<void> _ensureRepositories() async {
+    if (_visitRepository != null && _tagRepository != null) {
+      return;
+    }
+    final db = _db ?? await AppDatabase().open();
+    _db ??= db;
+    _visitRepository ??= VisitRepository(db);
+    _tagRepository ??= TagRepository(db);
+  }
+
+  void _expandSheet() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_sheetController.isAttached) {
+        return;
+      }
+      unawaited(
+        _sheetController.animateTo(
+          0.25,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOut,
+        ),
+      );
+    });
+  }
+
   String _displayName(String placeCode) {
     final label = _labels[placeCode];
     if (label == null) {
@@ -278,6 +341,25 @@ class _MapPageState extends State<MapPage> {
       return label.nameEn;
     }
     return label.nameJa;
+  }
+
+  String _levelLabel(int level) {
+    switch (level) {
+      case 0:
+        return '未踏';
+      case 1:
+        return '乗継（空港のみ）';
+      case 2:
+        return '乗継（少し観光）';
+      case 3:
+        return '訪問（宿泊なし）';
+      case 4:
+        return '観光（宿泊あり）';
+      case 5:
+        return '居住';
+      default:
+        return '未分類';
+    }
   }
 
   Color _colorForLevel(int level) {
@@ -296,6 +378,73 @@ class _MapPageState extends State<MapPage> {
       default:
         return const Color(0xFFef476f);
     }
+  }
+
+  Future<void> _addVisitFromSheet() async {
+    final placeCode = _selectionData?.placeCode;
+    if (placeCode == null) return;
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => VisitEditorPage(initialPlaceCode: placeCode),
+      ),
+    );
+    if (!mounted || result != true) return;
+    setState(() => _loading = true);
+    await _loadData();
+  }
+
+  Future<void> _duplicateVisitFromSheet() async {
+    final placeCode = _selectionData?.placeCode;
+    if (placeCode == null) return;
+    await _ensureRepositories();
+    final repo = _visitRepository;
+    if (repo == null) return;
+    final latest = await repo.latestVisitForPlace(placeCode);
+    if (latest == null) {
+      _showMessage('このPlaceのVisitがありません');
+      return;
+    }
+    final tags = await _tagRepository!.listByVisitId(latest.visitId);
+    if (!mounted) return;
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => VisitEditorPage(
+          initialPlaceCode: placeCode,
+          initialTitle: latest.title,
+          initialLevel: latest.level,
+          initialNote: latest.note,
+          initialTags: tags,
+        ),
+      ),
+    );
+    if (!mounted || result != true) return;
+    setState(() => _loading = true);
+    await _loadData();
+  }
+
+  Future<void> _openDetailFromSheet() async {
+    final placeCode = _selectionData?.placeCode;
+    if (placeCode == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PlaceDetailPage(placeCode: placeCode)),
+    );
+    if (!mounted) return;
+    setState(() => _loading = true);
+    await _loadData();
+  }
+
+  void _clearSelection() {
+    if (_selectionData == null) {
+      return;
+    }
+    setState(() => _selectionData = null);
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _buildFlatMap() {
@@ -322,6 +471,7 @@ class _MapPageState extends State<MapPage> {
         );
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
+          onTapUp: (_) => _clearSelection(),
           onLongPressStart: (details) =>
               _handleLongPress(details.localPosition),
           child: InteractiveViewer(
@@ -352,10 +502,26 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  Widget _buildSelectionSheet() {
+    final data = _selectionData;
+    if (data == null) {
+      return const SizedBox.shrink();
+    }
+    return MapSelectionSheet(
+      controller: _sheetController,
+      data: data,
+      onAddVisit: _addVisitFromSheet,
+      onDuplicateVisit: _duplicateVisitFromSheet,
+      onOpenDetail: _openDetailFromSheet,
+      onClose: _clearSelection,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             child: _isGlobe ? _buildGlobePlaceholder() : _buildFlatMap(),
@@ -416,6 +582,7 @@ class _MapPageState extends State<MapPage> {
               ],
             ),
           ),
+          if (_selectionData != null) _buildSelectionSheet(),
         ],
       ),
     );

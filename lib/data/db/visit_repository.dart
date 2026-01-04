@@ -146,6 +146,18 @@ class VisitRepository {
     return rows.map(VisitRecord.fromMap).toList();
   }
 
+  Future<VisitRecord?> latestVisitForPlace(String placeCode) async {
+    final rows = await db.query(
+      'visit',
+      where: 'place_code = ?',
+      whereArgs: [placeCode],
+      orderBy: "COALESCE(end_date, start_date, '') DESC, updated_at DESC",
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return VisitRecord.fromMap(rows.first);
+  }
+
   Future<List<String>> getTagIdsForVisit(String visitId) async {
     final rows = await db.query(
       'visit_tag',
