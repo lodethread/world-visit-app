@@ -9,6 +9,8 @@ import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
+import 'package:world_visit_app/features/map/widgets/globe_under_construction.dart';
+import 'package:world_visit_app/features/map/widgets/map_legend_overlay.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
@@ -362,6 +364,41 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  List<MapLegendEntry> get _legendEntries {
+    return [
+      MapLegendEntry(
+        levelLabel: '0 未踏',
+        description: '未踏',
+        color: _colorForLevel(0),
+      ),
+      MapLegendEntry(
+        levelLabel: '1 乗継（空港のみ）',
+        description: '乗継（空港のみ）',
+        color: _colorForLevel(1),
+      ),
+      MapLegendEntry(
+        levelLabel: '2 乗継（少し観光）',
+        description: '乗継（少し観光）',
+        color: _colorForLevel(2),
+      ),
+      MapLegendEntry(
+        levelLabel: '3 訪問（宿泊なし）',
+        description: '訪問（宿泊なし）',
+        color: _colorForLevel(3),
+      ),
+      MapLegendEntry(
+        levelLabel: '4 観光（宿泊あり）',
+        description: '観光（宿泊あり）',
+        color: _colorForLevel(4),
+      ),
+      MapLegendEntry(
+        levelLabel: '5 居住',
+        description: '居住',
+        color: _colorForLevel(5),
+      ),
+    ];
+  }
+
   Color _colorForLevel(int level) {
     switch (level) {
       case 0:
@@ -463,6 +500,7 @@ class _MapPageState extends State<MapPage> {
           levels: _levels,
           colorResolver: _colorForLevel,
           geometryToPlace: _geometryToPlace,
+          selectedPlaceCode: _selectionData?.placeCode,
         );
         final canvas = SizedBox(
           width: size.width,
@@ -490,15 +528,8 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildGlobePlaceholder() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.public, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('Globe map is under construction.'),
-        ],
-      ),
+    return GlobeUnderConstruction(
+      onExit: () => setState(() => _isGlobe = false),
     );
   }
 
@@ -508,6 +539,7 @@ class _MapPageState extends State<MapPage> {
       return const SizedBox.shrink();
     }
     return MapSelectionSheet(
+      key: ValueKey(data.placeCode),
       controller: _sheetController,
       data: data,
       onAddVisit: _addVisitFromSheet,
@@ -519,71 +551,93 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: _isGlobe ? _buildGlobePlaceholder() : _buildFlatMap(),
-          ),
-          Positioned(
-            top: 40,
-            left: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '経国値: $_totalScore',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => setState(() => _isGlobe = false),
-                        child: Text(
-                          'Flat',
-                          style: TextStyle(
-                            color: _isGlobe
-                                ? Colors.white70
-                                : Colors.amberAccent,
-                          ),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _isGlobe = true),
-                        child: Text(
-                          'Globe',
-                          style: TextStyle(
-                            color: _isGlobe
-                                ? Colors.amberAccent
-                                : Colors.white70,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return PopScope(
+      canPop: _selectionData == null && !_isGlobe,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) {
+          return;
+        }
+        if (_selectionData != null) {
+          _clearSelection();
+          return;
+        }
+        if (_isGlobe) {
+          setState(() => _isGlobe = false);
+        }
+      },
+      child: Scaffold(
+        body: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: _isGlobe ? _buildGlobePlaceholder() : _buildFlatMap(),
             ),
-          ),
-          if (_selectionData != null) _buildSelectionSheet(),
-        ],
+            Positioned(
+              top: 16,
+              left: 16,
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '経国値: $_totalScore',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() => _isGlobe = false),
+                            child: Text(
+                              'Flat',
+                              style: TextStyle(
+                                color: _isGlobe
+                                    ? Colors.white70
+                                    : Colors.amberAccent,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => setState(() => _isGlobe = true),
+                            child: Text(
+                              'Globe',
+                              style: TextStyle(
+                                color: _isGlobe
+                                    ? Colors.amberAccent
+                                    : Colors.white70,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: SafeArea(child: MapLegendOverlay(entries: _legendEntries)),
+            ),
+            if (_selectionData != null) _buildSelectionSheet(),
+          ],
+        ),
       ),
     );
   }
@@ -595,12 +649,14 @@ class _FlatMapPainter extends CustomPainter {
     required this.levels,
     required this.colorResolver,
     required this.geometryToPlace,
+    required this.selectedPlaceCode,
   });
 
   final List<MapPolygon> polygons;
   final Map<String, int> levels;
   final Color Function(int) colorResolver;
   final Map<String, String> geometryToPlace;
+  final String? selectedPlaceCode;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -609,6 +665,10 @@ class _FlatMapPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..color = Colors.white.withValues(alpha: 0.4)
       ..strokeWidth = 0.5;
+    final highlightStrokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = Colors.white
+      ..strokeWidth = 2.4;
 
     for (final polygon in polygons) {
       final placeCode = geometryToPlace[polygon.geometryId];
@@ -616,21 +676,30 @@ class _FlatMapPainter extends CustomPainter {
         continue;
       }
       final level = levels[placeCode] ?? 0;
-      fillPaint.color = colorResolver(level);
-      final path = Path()..fillType = PathFillType.evenOdd;
-      for (final ring in polygon.rings) {
-        if (ring.isEmpty) continue;
-        final first = _scaleOffset(ring.first, size);
-        path.moveTo(first.dx, first.dy);
-        for (int k = 1; k < ring.length; k++) {
-          final pt = _scaleOffset(ring[k], size);
-          path.lineTo(pt.dx, pt.dy);
-        }
-        path.close();
-      }
+      final isSelected = placeCode == selectedPlaceCode;
+      final baseColor = colorResolver(level);
+      fillPaint.color = isSelected
+          ? baseColor
+          : baseColor.withValues(alpha: 0.85);
+      final path = _buildPath(polygon, size);
       canvas.drawPath(path, fillPaint);
-      canvas.drawPath(path, strokePaint);
+      canvas.drawPath(path, isSelected ? highlightStrokePaint : strokePaint);
     }
+  }
+
+  Path _buildPath(MapPolygon polygon, Size size) {
+    final path = Path()..fillType = PathFillType.evenOdd;
+    for (final ring in polygon.rings) {
+      if (ring.isEmpty) continue;
+      final first = _scaleOffset(ring.first, size);
+      path.moveTo(first.dx, first.dy);
+      for (int k = 1; k < ring.length; k++) {
+        final pt = _scaleOffset(ring[k], size);
+        path.lineTo(pt.dx, pt.dy);
+      }
+      path.close();
+    }
+    return path;
   }
 
   Offset _scaleOffset(Offset offset, Size size) {
@@ -641,7 +710,8 @@ class _FlatMapPainter extends CustomPainter {
   bool shouldRepaint(covariant _FlatMapPainter oldDelegate) {
     return oldDelegate.polygons != polygons ||
         oldDelegate.levels != levels ||
-        oldDelegate.geometryToPlace != geometryToPlace;
+        oldDelegate.geometryToPlace != geometryToPlace ||
+        oldDelegate.selectedPlaceCode != selectedPlaceCode;
   }
 }
 
