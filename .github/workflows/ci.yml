@@ -15,6 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Configure Gradle repo fallback
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cp tool/gradle/init/force_repo1.gradle.kts ~/.gradle/init.d/force_repo1.gradle.kts
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
