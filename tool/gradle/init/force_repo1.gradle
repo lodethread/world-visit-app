@@ -1,0 +1,28 @@
+def rewriteRepoUrls(repositories) {
+    if (repositories == null) {
+        return
+    }
+    repositories.all { repo ->
+        def current = repo.hasProperty("url") ? repo.url?.toString() : null
+        if (current && current.contains("repo.maven.apache.org")) {
+            repo.setUrl(current.replace("repo.maven.apache.org/maven2", "repo1.maven.org/maven2"))
+        }
+    }
+}
+
+settingsEvaluated { settings ->
+    rewriteRepoUrls(settings.pluginManagement.repositories)
+    def drm = settings.metaClass.hasProperty(settings, "dependencyResolutionManagement") ?
+        settings.dependencyResolutionManagement :
+        null
+    if (drm != null) {
+        rewriteRepoUrls(drm.repositories)
+    }
+}
+
+gradle.projectsLoaded { g ->
+    g.allprojects { project ->
+        rewriteRepoUrls(project.repositories)
+        rewriteRepoUrls(project.buildscript.repositories)
+    }
+}
