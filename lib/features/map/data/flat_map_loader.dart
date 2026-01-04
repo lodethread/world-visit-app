@@ -1,10 +1,16 @@
 import 'dart:convert';
 import 'dart:io' show GZipCodec;
+import 'dart:isolate';
 import 'dart:math';
+import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'package:world_visit_app/features/map/data/spatial_index.dart';
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
+
+const int _spatialGridCells = 96;
 
 class MapPolygon {
   factory MapPolygon({
@@ -19,6 +25,7 @@ class MapPolygon {
       rings: normalized.map((e) => e.points).toList(),
       ringBounds: normalized.map((e) => e.bounds).toList(),
       bounds: _mergeBounds(normalized.map((e) => e.bounds)),
+      path: _buildPath(normalized),
     );
   }
 
@@ -28,6 +35,7 @@ class MapPolygon {
     required this.rings,
     required this.ringBounds,
     required this.bounds,
+    required this.path,
   });
 
   final String geometryId;
@@ -35,6 +43,7 @@ class MapPolygon {
   final List<List<Offset>> rings;
   final List<Rect> ringBounds;
   final Rect bounds;
+  final Path path;
 
   bool containsPoint(Offset point) {
     if (rings.isEmpty || !bounds.inflate(1e-6).contains(point)) {
@@ -106,10 +115,33 @@ Rect _mergeBounds(Iterable<Rect> rects) {
   return current;
 }
 
+Rect _expandRect(Rect base, Rect addition) {
+  return Rect.fromLTRB(
+    min(base.left, addition.left),
+    min(base.top, addition.top),
+    max(base.right, addition.right),
+    max(base.bottom, addition.bottom),
+  );
+}
+
+Path _buildPath(List<_RingData> rings) {
+  final path = Path()..fillType = PathFillType.evenOdd;
+  for (final ring in rings) {
+    if (ring.points.isEmpty) continue;
+    path.moveTo(ring.points.first.dx, ring.points.first.dy);
+    for (final point in ring.points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    path.close();
+  }
+  return path;
+}
+
 class FlatMapDataset {
-  FlatMapDataset(this.geometries);
+  FlatMapDataset({required this.geometries, required this.spatialIndex});
 
   final Map<String, CountryGeometry> geometries;
+  final SpatialIndex<String> spatialIndex;
   List<MapPolygon>? _polygonCache;
   Map<String, GeoBounds>? _boundsCache;
 
@@ -144,12 +176,14 @@ class CountryGeometry {
     required this.drawOrder,
     required this.polygons,
     required this.bounds,
+    required this.worldBounds,
   });
 
   final String geometryId;
   final double drawOrder;
   final List<MapPolygon> polygons;
   final GeoBounds bounds;
+  final Rect worldBounds;
 }
 
 class FlatMapLoader {
@@ -172,15 +206,7 @@ class FlatMapLoader {
   }
 
   Future<FlatMapDataset> _loadDataset(String assetPath) async {
-    final data = await _bundle.load(assetPath);
-    final Uint8List bytes = data.buffer.asUint8List(
-      data.offsetInBytes,
-      data.lengthInBytes,
-    );
-    final decoded = utf8.decode(GZipCodec().decode(bytes));
-    final json = jsonDecode(decoded) as Map<String, dynamic>;
-    final features = (json['features'] as List).cast<Map<String, dynamic>>();
-
+    final features = await _decodeFeatures(assetPath);
     final builders = <String, _GeometryBuilder>{};
     for (final feature in features) {
       final props = (feature['properties'] as Map?) ?? {};
@@ -216,13 +242,31 @@ class FlatMapLoader {
     }
 
     final geometries = <String, CountryGeometry>{};
+    final spatialIndex = SpatialIndex<String>(cellCount: _spatialGridCells);
     for (final entry in builders.entries) {
       final geometry = entry.value.build();
       if (geometry != null) {
         geometries[entry.key] = geometry;
+        spatialIndex.insert(geometry.worldBounds, geometry.geometryId);
       }
     }
-    return FlatMapDataset(Map.unmodifiable(geometries));
+    return FlatMapDataset(
+      geometries: Map.unmodifiable(geometries),
+      spatialIndex: spatialIndex,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _decodeFeatures(String assetPath) async {
+    final data = await _bundle.load(assetPath);
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
+    final transferable = TransferableTypedData.fromList([bytes]);
+    return compute<_DecodeRequest, List<Map<String, dynamic>>>(
+      _decodeFeatureCollection,
+      _DecodeRequest(transferable),
+    );
   }
 }
 
@@ -238,6 +282,7 @@ class _GeometryBuilder {
   final WebMercatorProjection projection;
   final List<MapPolygon> polygons = [];
   GeoBounds? bounds;
+  Rect? worldBounds;
 
   void addPolygon(List<dynamic> polygonCoords) {
     final result = _convertPolygon(polygonCoords);
@@ -251,11 +296,16 @@ class _GeometryBuilder {
         rings: result.rings,
       ),
     );
-    bounds = bounds == null ? result.bounds : bounds!.expand(result.bounds);
+    bounds = bounds == null
+        ? result.geoBounds
+        : bounds!.expand(result.geoBounds);
+    worldBounds = worldBounds == null
+        ? result.worldBounds
+        : _expandRect(worldBounds!, result.worldBounds);
   }
 
   CountryGeometry? build() {
-    if (polygons.isEmpty || bounds == null) {
+    if (polygons.isEmpty || bounds == null || worldBounds == null) {
       return null;
     }
     return CountryGeometry(
@@ -263,12 +313,14 @@ class _GeometryBuilder {
       drawOrder: drawOrder,
       polygons: List.unmodifiable(polygons),
       bounds: bounds!,
+      worldBounds: worldBounds!,
     );
   }
 
   _PolygonConversionResult? _convertPolygon(List<dynamic> rings) {
     final transformed = <List<Offset>>[];
     final lonLatPoints = <Offset>[];
+    Rect? projectedBounds;
     for (final ring in rings) {
       final parsedRing = <Offset>[];
       for (final point in ring as List) {
@@ -286,24 +338,57 @@ class _GeometryBuilder {
       if (parsedRing.length < 3) {
         continue;
       }
+      final ringBounds = _rectFromRing(parsedRing);
+      if (projectedBounds == null) {
+        projectedBounds = ringBounds;
+      } else {
+        projectedBounds = _expandRect(projectedBounds, ringBounds);
+      }
       transformed.add(parsedRing);
     }
-    if (transformed.isEmpty || lonLatPoints.isEmpty) {
+    if (transformed.isEmpty ||
+        lonLatPoints.isEmpty ||
+        projectedBounds == null) {
       return null;
     }
-    final bounds = GeoBounds.fromPoints(lonLatPoints);
-    return _PolygonConversionResult(rings: transformed, bounds: bounds);
+    final geoBounds = GeoBounds.fromPoints(lonLatPoints);
+    return _PolygonConversionResult(
+      rings: transformed,
+      geoBounds: geoBounds,
+      worldBounds: projectedBounds,
+    );
   }
 }
 
 class _PolygonConversionResult {
-  const _PolygonConversionResult({required this.rings, required this.bounds});
+  const _PolygonConversionResult({
+    required this.rings,
+    required this.geoBounds,
+    required this.worldBounds,
+  });
 
   final List<List<Offset>> rings;
-  final GeoBounds bounds;
+  final GeoBounds geoBounds;
+  final Rect worldBounds;
 }
 
 bool _arePointsEqual(Offset a, Offset b) {
   const threshold = 1e-9;
   return (a.dx - b.dx).abs() < threshold && (a.dy - b.dy).abs() < threshold;
+}
+
+class _DecodeRequest {
+  const _DecodeRequest(this.data);
+
+  final TransferableTypedData data;
+}
+
+List<Map<String, dynamic>> _decodeFeatureCollection(_DecodeRequest request) {
+  final materialized = request.data.materialize().asUint8List();
+  final decoded = utf8.decode(GZipCodec().decode(materialized));
+  final json = jsonDecode(decoded) as Map<String, dynamic>;
+  final rawFeatures = (json['features'] as List).cast<Map>();
+  return rawFeatures
+      .map((feature) => feature.cast<String, dynamic>())
+      .toList(growable: false);
 }

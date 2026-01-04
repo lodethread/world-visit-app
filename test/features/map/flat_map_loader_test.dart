@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io' show GZipCodec;
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,6 +48,9 @@ void main() {
     final bounds = dataset.boundsByGeometry['392'];
     expect(bounds, isNotNull);
     expect(bounds!.minLon, closeTo(130.0, 1e-6));
+    final Rect worldBounds = dataset.geometries['392']!.worldBounds;
+    final hits = dataset.spatialIndex.query(worldBounds.center).toList();
+    expect(hits, contains('392'));
   });
 }
 
