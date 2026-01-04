@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show GZipCodec;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +9,7 @@ import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('FlatMapLoader parses gzip GeoJSON', () async {
+  test('FlatMapLoader parses gzip GeoJSON dataset', () async {
     final geojson = jsonEncode({
       'type': 'FeatureCollection',
       'features': [
@@ -40,11 +40,15 @@ void main() {
     });
 
     final loader = FlatMapLoader(bundle: bundle);
-    final polygons = await loader.load();
-    expect(polygons, hasLength(1));
-    expect(polygons.first.geometryId, '392');
-    expect(polygons.first.drawOrder, 400);
-    expect(polygons.first.rings.single, isNotEmpty);
+    final dataset = await loader.loadCountries50m();
+    expect(dataset.polygons, hasLength(1));
+    final polygon = dataset.polygons.first;
+    expect(polygon.geometryId, '392');
+    expect(polygon.drawOrder, 400);
+    expect(polygon.rings.single, isNotEmpty);
+    final bounds = dataset.boundsByGeometry['392'];
+    expect(bounds, isNotNull);
+    expect(bounds!.minLon, closeTo(130.0, 1e-6));
   });
 }
 

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build_assets.mjs"
+    "build": "node build_assets.mjs",
+    "generate:map": "node build_assets.mjs"
   },
   "dependencies": {
     "topojson-client": "^3.1.0",

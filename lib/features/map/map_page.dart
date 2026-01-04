@@ -5,6 +5,8 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
+import 'package:world_visit_app/features/map/flat_map_geometry.dart';
+import 'package:world_visit_app/features/map/lod_resolver.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 
 class MapPage extends StatefulWidget {
@@ -17,33 +19,49 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   bool _isGlobe = false;
   bool _loading = true;
+  final TransformationController _transformationController =
+      TransformationController();
+  final WebMercatorProjection _projection = const WebMercatorProjection();
+  final MapLodResolver _lodResolver = const MapLodResolver();
+  MapLod _lod = MapLod.coarse110m;
   final List<MapPolygon> _polygons = [];
   final Map<String, _PlaceLabel> _labels = {};
   final Map<String, int> _levels = {};
   final Map<String, double> _drawOrders = {};
-  Map<String, String> _geometryToPlace = const {};
+  Map<String, GeoBounds> _geometryBounds = const <String, GeoBounds>{};
+  Map<String, String> _geometryToPlace = const <String, String>{};
+  FlatMapDataset? _dataset110m;
+  FlatMapDataset? _dataset50m;
+  FlatMapDataset? _activeDataset;
   int _totalScore = 0;
+  Size? _viewportSize;
   Database? _db;
 
   @override
   void initState() {
     super.initState();
+    _transformationController.addListener(_handleViewportChanged);
     unawaited(_loadData());
   }
 
   @override
   void dispose() {
+    _transformationController.removeListener(_handleViewportChanged);
+    _transformationController.dispose();
     _db?.close();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     final loader = FlatMapLoader();
-    final polygons = await loader.load();
-    final sortedPolygons = [...polygons]
-      ..sort((a, b) => a.drawOrder.compareTo(b.drawOrder));
+    final datasets = await Future.wait([
+      loader.loadCountries110m(),
+      loader.loadCountries50m(),
+    ]);
+    final dataset110m = datasets[0];
+    final dataset50m = datasets[1];
     final drawOrders = <String, double>{};
-    for (final polygon in sortedPolygons) {
+    for (final polygon in dataset50m.polygons) {
       final existing = drawOrders[polygon.geometryId];
       if (existing == null || polygon.drawOrder > existing) {
         drawOrders[polygon.geometryId] = polygon.drawOrder;
@@ -83,9 +101,9 @@ class _MapPageState extends State<MapPage> {
       total += level;
     }
     setState(() {
-      _polygons
-        ..clear()
-        ..addAll(sortedPolygons);
+      _dataset110m = dataset110m;
+      _dataset50m = dataset50m;
+      _applyDataset(_lod);
       _drawOrders
         ..clear()
         ..addAll(drawOrders);
@@ -95,8 +113,39 @@ class _MapPageState extends State<MapPage> {
     });
   }
 
-  Future<void> _handleLongPress(Offset position, Size size) async {
-    final candidates = _hitTestCandidates(position, size);
+  void _applyDataset(MapLod lod) {
+    final dataset = lod == MapLod.coarse110m ? _dataset110m : _dataset50m;
+    if (dataset == null) {
+      return;
+    }
+    _activeDataset = dataset;
+    _polygons
+      ..clear()
+      ..addAll(dataset.polygons);
+    _geometryBounds = dataset.boundsByGeometry;
+  }
+
+  void _handleViewportChanged() {
+    if (_dataset110m == null || _dataset50m == null) {
+      return;
+    }
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    if (scale <= 0) {
+      return;
+    }
+    final lonSpan = 360.0 / scale;
+    final nextLod = _lodResolver.resolve(lonSpan, _lod);
+    if (nextLod == _lod) {
+      return;
+    }
+    setState(() {
+      _lod = nextLod;
+      _applyDataset(nextLod);
+    });
+  }
+
+  Future<void> _handleLongPress(Offset position) async {
+    final candidates = _hitTestCandidates(position);
     if (candidates.isEmpty) {
       return;
     }
@@ -119,24 +168,56 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  List<_PlaceCandidate> _hitTestCandidates(Offset position, Size size) {
-    if (_polygons.isEmpty || size.width <= 0 || size.height <= 0) {
+  List<_PlaceCandidate> _hitTestCandidates(Offset position) {
+    final size = _viewportSize;
+    final dataset = _activeDataset;
+    if (size == null || dataset == null || _polygons.isEmpty) {
       return const <_PlaceCandidate>[];
     }
+    final scenePoint = _transformationController.toScene(position);
     final normalized = Offset(
-      (position.dx / size.width).clamp(0.0, 1.0),
-      (position.dy / size.height).clamp(0.0, 1.0),
+      scenePoint.dx / size.width,
+      scenePoint.dy / size.height,
     );
-    final Map<String, _PlaceCandidate> aggregated = {};
-    for (final polygon in _polygons) {
-      if (!polygon.containsPoint(normalized)) {
-        continue;
+    if (normalized.dx.isNaN ||
+        normalized.dy.isNaN ||
+        normalized.dx < 0 ||
+        normalized.dx > 1 ||
+        normalized.dy < 0 ||
+        normalized.dy > 1) {
+      return const <_PlaceCandidate>[];
+    }
+    final geoPoint = _projection.unproject(normalized);
+    final geometryIds = <String>[];
+    _geometryBounds.forEach((geometryId, bounds) {
+      if (bounds.contains(geoPoint.dx, geoPoint.dy)) {
+        geometryIds.add(geometryId);
       }
-      final placeCode = _geometryToPlace[polygon.geometryId];
+    });
+    if (geometryIds.isEmpty) {
+      return const <_PlaceCandidate>[];
+    }
+    final Map<String, _PlaceCandidate> aggregated = {};
+    for (final geometryId in geometryIds) {
+      final placeCode = _geometryToPlace[geometryId];
       if (placeCode == null) {
         continue;
       }
-      final drawOrder = _drawOrders[polygon.geometryId] ?? polygon.drawOrder;
+      final polygons = dataset.geometries[geometryId]?.polygons ?? const [];
+      bool hit = false;
+      for (final polygon in polygons) {
+        if (polygon.containsPoint(normalized)) {
+          hit = true;
+          break;
+        }
+      }
+      if (!hit) {
+        continue;
+      }
+      final drawOrder =
+          _drawOrders[geometryId] ??
+          dataset.geometries[geometryId]?.drawOrder ??
+          0;
       final displayName = _displayName(placeCode);
       final existing = aggregated[placeCode];
       if (existing == null || drawOrder > existing.drawOrder) {
@@ -227,17 +308,31 @@ class _MapPageState extends State<MapPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
+        _viewportSize = size;
+        final painter = _FlatMapPainter(
+          polygons: _polygons,
+          levels: _levels,
+          colorResolver: _colorForLevel,
+          geometryToPlace: _geometryToPlace,
+        );
+        final canvas = SizedBox(
+          width: size.width,
+          height: size.height,
+          child: CustomPaint(painter: painter),
+        );
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onLongPressStart: (details) =>
-              _handleLongPress(details.localPosition, size),
-          child: CustomPaint(
-            size: size,
-            painter: _FlatMapPainter(
-              polygons: _polygons,
-              levels: _levels,
-              colorResolver: _colorForLevel,
-              geometryToPlace: _geometryToPlace,
-            ),
+              _handleLongPress(details.localPosition),
+          child: InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: 1.0,
+            maxScale: 12.0,
+            panEnabled: true,
+            scaleEnabled: true,
+            boundaryMargin: const EdgeInsets.all(200),
+            clipBehavior: Clip.none,
+            child: canvas,
           ),
         );
       },
