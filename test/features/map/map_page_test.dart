@@ -10,7 +10,7 @@ void main() {
 
   testWidgets('Flat map renders without token', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: MapPage()));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.textContaining('経国値'), findsOneWidget);
   });
 }

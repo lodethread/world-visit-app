@@ -17,10 +17,11 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   bool _isGlobe = false;
   bool _loading = true;
-  final List<PlacePolygon> _polygons = [];
+  final List<MapPolygon> _polygons = [];
   final Map<String, _PlaceLabel> _labels = {};
   final Map<String, int> _levels = {};
   final Map<String, double> _drawOrders = {};
+  Map<String, String> _geometryToPlace = const {};
   int _totalScore = 0;
   Database? _db;
 
@@ -43,15 +44,16 @@ class _MapPageState extends State<MapPage> {
       ..sort((a, b) => a.drawOrder.compareTo(b.drawOrder));
     final drawOrders = <String, double>{};
     for (final polygon in sortedPolygons) {
-      final existing = drawOrders[polygon.placeCode];
+      final existing = drawOrders[polygon.geometryId];
       if (existing == null || polygon.drawOrder > existing) {
-        drawOrders[polygon.placeCode] = polygon.drawOrder;
+        drawOrders[polygon.geometryId] = polygon.drawOrder;
       }
     }
     final db = _db ?? await AppDatabase().open();
     _db ??= db;
     final placeRows = await db.query('place');
     final statsRows = await db.query('place_stats');
+    final geometryToPlace = <String, String>{};
     _labels
       ..clear()
       ..addEntries(
@@ -65,6 +67,14 @@ class _MapPageState extends State<MapPage> {
           ),
         ),
       );
+    for (final row in placeRows) {
+      final geometryId = row['geometry_id']?.toString();
+      final placeCode = row['place_code']?.toString();
+      if (geometryId == null || geometryId.isEmpty || placeCode == null) {
+        continue;
+      }
+      geometryToPlace[geometryId] = placeCode;
+    }
     _levels.clear();
     int total = 0;
     for (final row in statsRows) {
@@ -79,6 +89,7 @@ class _MapPageState extends State<MapPage> {
       _drawOrders
         ..clear()
         ..addAll(drawOrders);
+      _geometryToPlace = geometryToPlace;
       _totalScore = total;
       _loading = false;
     });
@@ -121,12 +132,16 @@ class _MapPageState extends State<MapPage> {
       if (!polygon.containsPoint(normalized)) {
         continue;
       }
-      final drawOrder = _drawOrders[polygon.placeCode] ?? polygon.drawOrder;
-      final displayName = _displayName(polygon.placeCode);
-      final existing = aggregated[polygon.placeCode];
+      final placeCode = _geometryToPlace[polygon.geometryId];
+      if (placeCode == null) {
+        continue;
+      }
+      final drawOrder = _drawOrders[polygon.geometryId] ?? polygon.drawOrder;
+      final displayName = _displayName(placeCode);
+      final existing = aggregated[placeCode];
       if (existing == null || drawOrder > existing.drawOrder) {
-        aggregated[polygon.placeCode] = _PlaceCandidate(
-          placeCode: polygon.placeCode,
+        aggregated[placeCode] = _PlaceCandidate(
+          placeCode: placeCode,
           drawOrder: drawOrder,
           displayName: displayName,
         );
@@ -221,6 +236,7 @@ class _MapPageState extends State<MapPage> {
               polygons: _polygons,
               levels: _levels,
               colorResolver: _colorForLevel,
+              geometryToPlace: _geometryToPlace,
             ),
           ),
         );
@@ -316,11 +332,13 @@ class _FlatMapPainter extends CustomPainter {
     required this.polygons,
     required this.levels,
     required this.colorResolver,
+    required this.geometryToPlace,
   });
 
-  final List<PlacePolygon> polygons;
+  final List<MapPolygon> polygons;
   final Map<String, int> levels;
   final Color Function(int) colorResolver;
+  final Map<String, String> geometryToPlace;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -331,7 +349,11 @@ class _FlatMapPainter extends CustomPainter {
       ..strokeWidth = 0.5;
 
     for (final polygon in polygons) {
-      final level = levels[polygon.placeCode] ?? 0;
+      final placeCode = geometryToPlace[polygon.geometryId];
+      if (placeCode == null) {
+        continue;
+      }
+      final level = levels[placeCode] ?? 0;
       fillPaint.color = colorResolver(level);
       final path = Path()..fillType = PathFillType.evenOdd;
       for (final ring in polygon.rings) {
@@ -355,7 +377,9 @@ class _FlatMapPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FlatMapPainter oldDelegate) {
-    return oldDelegate.polygons != polygons || oldDelegate.levels != levels;
+    return oldDelegate.polygons != polygons ||
+        oldDelegate.levels != levels ||
+        oldDelegate.geometryToPlace != geometryToPlace;
   }
 }
 
