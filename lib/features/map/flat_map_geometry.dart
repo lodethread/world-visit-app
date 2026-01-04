@@ -1,4 +1,87 @@
+import 'dart:math' as math;
 import 'dart:ui';
+
+class GeoBounds {
+  const GeoBounds({
+    required this.minLon,
+    required this.minLat,
+    required this.maxLon,
+    required this.maxLat,
+  });
+
+  final double minLon;
+  final double minLat;
+  final double maxLon;
+  final double maxLat;
+
+  bool contains(double lon, double lat) {
+    return lon >= minLon && lon <= maxLon && lat >= minLat && lat <= maxLat;
+  }
+
+  GeoBounds expand(GeoBounds other) {
+    return GeoBounds(
+      minLon: math.min(minLon, other.minLon),
+      minLat: math.min(minLat, other.minLat),
+      maxLon: math.max(maxLon, other.maxLon),
+      maxLat: math.max(maxLat, other.maxLat),
+    );
+  }
+
+  static GeoBounds fromPoints(Iterable<Offset> points) {
+    final iterator = points.iterator;
+    if (!iterator.moveNext()) {
+      throw StateError('GeoBounds requires at least one point.');
+    }
+    var minLon = iterator.current.dx;
+    var maxLon = iterator.current.dx;
+    var minLat = iterator.current.dy;
+    var maxLat = iterator.current.dy;
+    while (iterator.moveNext()) {
+      final point = iterator.current;
+      minLon = math.min(minLon, point.dx);
+      maxLon = math.max(maxLon, point.dx);
+      minLat = math.min(minLat, point.dy);
+      maxLat = math.max(maxLat, point.dy);
+    }
+    return GeoBounds(
+      minLon: minLon,
+      minLat: minLat,
+      maxLon: maxLon,
+      maxLat: maxLat,
+    );
+  }
+}
+
+class WebMercatorProjection {
+  const WebMercatorProjection();
+
+  Offset project(double lon, double lat) {
+    final x = (lon + 180.0) / 360.0;
+    final clampedLat = lat.clamp(-85.0511, 85.0511).toDouble();
+    final rad = clampedLat * math.pi / 180.0;
+    final y =
+        0.5 -
+        math.log((1 + math.sin(rad)) / (1 - math.sin(rad))) / (4 * math.pi);
+    return Offset(x, y);
+  }
+
+  Offset unproject(Offset normalized) {
+    return Offset(
+      lonFromNormalized(normalized.dx),
+      latFromNormalized(normalized.dy),
+    );
+  }
+
+  double lonFromNormalized(double x) {
+    return x * 360.0 - 180.0;
+  }
+
+  double latFromNormalized(double y) {
+    final t = math.pi * (1 - 2 * y);
+    final latRad = math.atan(_sinh(t));
+    return latRad * 180.0 / math.pi;
+  }
+}
 
 bool pointInPolygon(Offset point, List<Offset> polygon) {
   if (polygon.length < 3) {
@@ -47,4 +130,8 @@ bool _pointOnSegment(Offset point, Offset start, Offset end) {
     return false;
   }
   return true;
+}
+
+double _sinh(double value) {
+  return (math.exp(value) - math.exp(-value)) / 2.0;
 }

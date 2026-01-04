@@ -4,7 +4,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { feature, mesh } from 'topojson-client';
-import countriesTopo from 'world-atlas/countries-50m.json' assert { type: 'json' };
+import countriesTopo50m from 'world-atlas/countries-50m.json' assert { type: 'json' };
+import countriesTopo110m from 'world-atlas/countries-110m.json' assert { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..', '..');
@@ -36,8 +37,8 @@ function gzipWrite(path, obj) {
   writeFileSync(path, gzipped);
 }
 
-function buildCountries(placeMeta) {
-  const collection = feature(countriesTopo, countriesTopo.objects.countries);
+function buildCountries(topoJson, placeMeta) {
+  const collection = feature(topoJson, topoJson.objects.countries);
   const features = collection.features
     .map((feat) => {
       let id = feat.id;
@@ -55,6 +56,7 @@ function buildCountries(placeMeta) {
         type: 'Feature',
         id: String(id),
         properties: {
+          geometry_id: String(id),
           name,
           place_code: meta?.placeCode,
           draw_order: drawOrder,
@@ -72,8 +74,8 @@ function buildCountries(placeMeta) {
 
 function buildBorders() {
   const borderGeometry = mesh(
-    countriesTopo,
-    countriesTopo.objects.countries,
+    countriesTopo50m,
+    countriesTopo50m.objects.countries,
     (a, b) => a !== b,
   );
   return {
@@ -92,14 +94,17 @@ function buildBorders() {
 function main() {
   ensureDir(outputDir);
   const placeMeta = loadPlaceMasterMeta();
-  const countriesFc = buildCountries(placeMeta);
+  const countries50m = buildCountries(countriesTopo50m, placeMeta);
+  const countries110m = buildCountries(countriesTopo110m, placeMeta);
   const bordersFc = buildBorders();
-  const countriesPath = join(outputDir, 'countries_50m.geojson.gz');
+  const countries50mPath = join(outputDir, 'countries_50m.geojson.gz');
+  const countries110mPath = join(outputDir, 'countries_110m.geojson.gz');
   const bordersPath = join(outputDir, 'borders_50m.geojson.gz');
-  gzipWrite(countriesPath, countriesFc);
+  gzipWrite(countries50mPath, countries50m);
+  gzipWrite(countries110mPath, countries110m);
   gzipWrite(bordersPath, bordersFc);
   console.log(
-    `Generated ${countriesFc.features.length} countries and borders asset.`,
+    `Generated ${countries50m.features.length} countries (50m), ${countries110m.features.length} countries (110m) and borders asset.`,
   );
 }
 

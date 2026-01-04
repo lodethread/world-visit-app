@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show GZipCodec;
 import 'dart:math';
 
 import 'package:flutter/services.dart';
@@ -106,14 +106,73 @@ Rect _mergeBounds(Iterable<Rect> rects) {
   return current;
 }
 
+class FlatMapDataset {
+  FlatMapDataset(this.geometries);
+
+  final Map<String, CountryGeometry> geometries;
+  List<MapPolygon>? _polygonCache;
+  Map<String, GeoBounds>? _boundsCache;
+
+  List<MapPolygon> get polygons {
+    return _polygonCache ??= _buildPolygonList();
+  }
+
+  Map<String, GeoBounds> get boundsByGeometry {
+    return _boundsCache ??= {
+      for (final entry in geometries.entries) entry.key: entry.value.bounds,
+    };
+  }
+
+  List<MapPolygon> _buildPolygonList() {
+    final entries = geometries.values
+        .expand((geometry) => geometry.polygons)
+        .toList();
+    entries.sort((a, b) {
+      final order = a.drawOrder.compareTo(b.drawOrder);
+      if (order != 0) {
+        return order;
+      }
+      return a.geometryId.compareTo(b.geometryId);
+    });
+    return entries;
+  }
+}
+
+class CountryGeometry {
+  CountryGeometry({
+    required this.geometryId,
+    required this.drawOrder,
+    required this.polygons,
+    required this.bounds,
+  });
+
+  final String geometryId;
+  final double drawOrder;
+  final List<MapPolygon> polygons;
+  final GeoBounds bounds;
+}
+
 class FlatMapLoader {
-  FlatMapLoader({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
+  FlatMapLoader({AssetBundle? bundle})
+    : _bundle = bundle ?? rootBundle,
+      _projection = const WebMercatorProjection();
 
   final AssetBundle _bundle;
-  static const String _assetPath = 'assets/map/countries_50m.geojson.gz';
+  final WebMercatorProjection _projection;
 
-  Future<List<MapPolygon>> load() async {
-    final data = await _bundle.load(_assetPath);
+  static const String _asset50m = 'assets/map/countries_50m.geojson.gz';
+  static const String _asset110m = 'assets/map/countries_110m.geojson.gz';
+
+  Future<FlatMapDataset> loadCountries50m() {
+    return _loadDataset(_asset50m);
+  }
+
+  Future<FlatMapDataset> loadCountries110m() {
+    return _loadDataset(_asset110m);
+  }
+
+  Future<FlatMapDataset> _loadDataset(String assetPath) async {
+    final data = await _bundle.load(assetPath);
     final Uint8List bytes = data.buffer.asUint8List(
       data.offsetInBytes,
       data.lengthInBytes,
@@ -121,75 +180,130 @@ class FlatMapLoader {
     final decoded = utf8.decode(GZipCodec().decode(bytes));
     final json = jsonDecode(decoded) as Map<String, dynamic>;
     final features = (json['features'] as List).cast<Map<String, dynamic>>();
-    final polygons = <MapPolygon>[];
+
+    final builders = <String, _GeometryBuilder>{};
     for (final feature in features) {
       final props = (feature['properties'] as Map?) ?? {};
       final geometryId = (feature['id'] ?? props['geometry_id'])?.toString();
-      if (geometryId == null || geometryId.isEmpty) continue;
-      final drawOrder = (props['draw_order'] as num?)?.toDouble() ?? 0;
+      if (geometryId == null || geometryId.isEmpty) {
+        continue;
+      }
       final geometry = feature['geometry'] as Map<String, dynamic>?;
-      if (geometry == null) continue;
-      final type = geometry['type'] as String;
+      if (geometry == null) {
+        continue;
+      }
+      final type = geometry['type'] as String?;
+      if (type == null) {
+        continue;
+      }
       final coords = geometry['coordinates'];
+      final drawOrder = (props['draw_order'] as num?)?.toDouble() ?? 0;
+      final builder = builders.putIfAbsent(
+        geometryId,
+        () => _GeometryBuilder(
+          geometryId: geometryId,
+          drawOrder: drawOrder,
+          projection: _projection,
+        ),
+      );
       if (type == 'Polygon') {
-        final rings = _convertPolygon(coords as List);
-        if (rings.isEmpty) continue;
-        polygons.add(
-          MapPolygon(
-            geometryId: geometryId,
-            drawOrder: drawOrder,
-            rings: rings,
-          ),
-        );
+        builder.addPolygon(coords as List);
       } else if (type == 'MultiPolygon') {
         for (final polygon in coords as List) {
-          final rings = _convertPolygon(polygon as List);
-          if (rings.isEmpty) continue;
-          polygons.add(
-            MapPolygon(
-              geometryId: geometryId,
-              drawOrder: drawOrder,
-              rings: rings,
-            ),
-          );
+          builder.addPolygon(polygon as List);
         }
       }
     }
-    polygons.sort((a, b) => a.drawOrder.compareTo(b.drawOrder));
-    return polygons;
-  }
 
-  List<List<Offset>> _convertPolygon(List<dynamic> rings) {
-    final transformed = <List<Offset>>[];
-    for (final ring in rings) {
-      final rawPoints = (ring as List)
-          .map(
-            (pt) => _projectLonLat(
-              (pt[0] as num).toDouble(),
-              (pt[1] as num).toDouble(),
-            ),
-          )
-          .toList();
-      if (rawPoints.length < 3) continue;
-      if (_arePointsEqual(rawPoints.first, rawPoints.last)) {
-        rawPoints.removeLast();
+    final geometries = <String, CountryGeometry>{};
+    for (final entry in builders.entries) {
+      final geometry = entry.value.build();
+      if (geometry != null) {
+        geometries[entry.key] = geometry;
       }
-      if (rawPoints.length < 3) continue;
-      transformed.add(rawPoints);
     }
-    return transformed;
+    return FlatMapDataset(Map.unmodifiable(geometries));
+  }
+}
+
+class _GeometryBuilder {
+  _GeometryBuilder({
+    required this.geometryId,
+    required this.drawOrder,
+    required this.projection,
+  });
+
+  final String geometryId;
+  final double drawOrder;
+  final WebMercatorProjection projection;
+  final List<MapPolygon> polygons = [];
+  GeoBounds? bounds;
+
+  void addPolygon(List<dynamic> polygonCoords) {
+    final result = _convertPolygon(polygonCoords);
+    if (result == null) {
+      return;
+    }
+    polygons.add(
+      MapPolygon(
+        geometryId: geometryId,
+        drawOrder: drawOrder,
+        rings: result.rings,
+      ),
+    );
+    bounds = bounds == null ? result.bounds : bounds!.expand(result.bounds);
   }
 
-  Offset _projectLonLat(double lon, double lat) {
-    final x = (lon + 180.0) / 360.0;
-    final clampedLat = lat.clamp(-85.0511, 85.0511);
-    final rad = clampedLat * pi / 180.0;
-    final y = 0.5 - log((1 + sin(rad)) / (1 - sin(rad))) / (4 * pi);
-    return Offset(x, y);
+  CountryGeometry? build() {
+    if (polygons.isEmpty || bounds == null) {
+      return null;
+    }
+    return CountryGeometry(
+      geometryId: geometryId,
+      drawOrder: drawOrder,
+      polygons: List.unmodifiable(polygons),
+      bounds: bounds!,
+    );
   }
 
-  bool _arePointsEqual(Offset a, Offset b) {
-    const threshold = 1e-9;
-    return (a.dx - b.dx).abs() < threshold && (a.dy - b.dy).abs() < threshold;
+  _PolygonConversionResult? _convertPolygon(List<dynamic> rings) {
+    final transformed = <List<Offset>>[];
+    final lonLatPoints = <Offset>[];
+    for (final ring in rings) {
+      final parsedRing = <Offset>[];
+      for (final point in ring as List) {
+        final lon = (point[0] as num).toDouble();
+        final lat = (point[1] as num).toDouble();
+        lonLatPoints.add(Offset(lon, lat));
+        parsedRing.add(projection.project(lon, lat));
+      }
+      if (parsedRing.length < 3) {
+        continue;
+      }
+      if (_arePointsEqual(parsedRing.first, parsedRing.last)) {
+        parsedRing.removeLast();
+      }
+      if (parsedRing.length < 3) {
+        continue;
+      }
+      transformed.add(parsedRing);
+    }
+    if (transformed.isEmpty || lonLatPoints.isEmpty) {
+      return null;
+    }
+    final bounds = GeoBounds.fromPoints(lonLatPoints);
+    return _PolygonConversionResult(rings: transformed, bounds: bounds);
   }
+}
+
+class _PolygonConversionResult {
+  const _PolygonConversionResult({required this.rings, required this.bounds});
+
+  final List<List<Offset>> rings;
+  final GeoBounds bounds;
+}
+
+bool _arePointsEqual(Offset a, Offset b) {
+  const threshold = 1e-9;
+  return (a.dx - b.dx).abs() < threshold && (a.dy - b.dy).abs() < threshold;
 }
