@@ -1,0 +1,11 @@
+{
+  "name": "world-visit-places-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate_places.mjs"
+  },
+  "dependencies": {
+    "i18n-iso-countries": "^7.5.0"
+  }
+}

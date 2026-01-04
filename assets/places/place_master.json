@@ -1,12 +1,2372 @@
 [
-  {"place_code":"JP","type":"sovereign","name_ja":"日本","name_en":"Japan","is_active":true,"sort_order":10,"draw_order":400,"geometry_id":"392"},
-  {"place_code":"US","type":"sovereign","name_ja":"米国","name_en":"United States","is_active":true,"sort_order":20,"draw_order":390,"geometry_id":"840"},
-  {"place_code":"HK","type":"territory","name_ja":"香港","name_en":"Hong Kong","is_active":true,"sort_order":30,"draw_order":380,"geometry_id":"344"},
-  {"place_code":"MO","type":"territory","name_ja":"マカオ","name_en":"Macau","is_active":true,"sort_order":40,"draw_order":370,"geometry_id":"446"},
-  {"place_code":"PR","type":"territory","name_ja":"プエルトリコ","name_en":"Puerto Rico","is_active":true,"sort_order":50,"draw_order":360,"geometry_id":"630"},
-  {"place_code":"TW","type":"territory","name_ja":"台湾","name_en":"Taiwan","is_active":true,"sort_order":60,"draw_order":350,"geometry_id":"158"},
-  {"place_code":"PS","type":"territory","name_ja":"パレスチナ","name_en":"Palestine","is_active":true,"sort_order":70,"draw_order":340,"geometry_id":"275"},
-  {"place_code":"EH","type":"territory","name_ja":"西サハラ","name_en":"Western Sahara","is_active":true,"sort_order":80,"draw_order":330,"geometry_id":"732"},
-  {"place_code":"XK","type":"territory","name_ja":"コソボ","name_en":"Kosovo","is_active":true,"sort_order":90,"draw_order":320,"geometry_id":"XK"},
-  {"place_code":"XNC","type":"territory","name_ja":"経国値","name_en":"Keikoku","is_active":true,"sort_order":100,"draw_order":310,"geometry_id":"XNC"}
+  {
+    "place_code": "AD",
+    "type": "sovereign",
+    "name_en": "Andorra",
+    "name_ja": "Andorra",
+    "is_active": true,
+    "geometry_id": "020",
+    "sort_order": 10,
+    "draw_order": 1000010
+  },
+  {
+    "place_code": "AE",
+    "type": "sovereign",
+    "name_en": "United Arab Emirates",
+    "name_ja": "United Arab Emirates",
+    "is_active": true,
+    "geometry_id": "784",
+    "sort_order": 20,
+    "draw_order": 1000020
+  },
+  {
+    "place_code": "AF",
+    "type": "sovereign",
+    "name_en": "Afghanistan",
+    "name_ja": "Afghanistan",
+    "is_active": true,
+    "geometry_id": "004",
+    "sort_order": 30,
+    "draw_order": 1000030
+  },
+  {
+    "place_code": "AG",
+    "type": "sovereign",
+    "name_en": "Antigua and Barb.",
+    "name_ja": "Antigua and Barb.",
+    "is_active": true,
+    "geometry_id": "028",
+    "sort_order": 40,
+    "draw_order": 1000040
+  },
+  {
+    "place_code": "AI",
+    "type": "sovereign",
+    "name_en": "Anguilla",
+    "name_ja": "Anguilla",
+    "is_active": true,
+    "geometry_id": "660",
+    "sort_order": 50,
+    "draw_order": 1000050
+  },
+  {
+    "place_code": "AL",
+    "type": "sovereign",
+    "name_en": "Albania",
+    "name_ja": "Albania",
+    "is_active": true,
+    "geometry_id": "008",
+    "sort_order": 60,
+    "draw_order": 1000060
+  },
+  {
+    "place_code": "AM",
+    "type": "sovereign",
+    "name_en": "Armenia",
+    "name_ja": "Armenia",
+    "is_active": true,
+    "geometry_id": "051",
+    "sort_order": 70,
+    "draw_order": 1000070
+  },
+  {
+    "place_code": "AO",
+    "type": "sovereign",
+    "name_en": "Angola",
+    "name_ja": "Angola",
+    "is_active": true,
+    "geometry_id": "024",
+    "sort_order": 80,
+    "draw_order": 1000080
+  },
+  {
+    "place_code": "AQ",
+    "type": "sovereign",
+    "name_en": "Antarctica",
+    "name_ja": "Antarctica",
+    "is_active": true,
+    "geometry_id": "010",
+    "sort_order": 90,
+    "draw_order": 1000090
+  },
+  {
+    "place_code": "AR",
+    "type": "sovereign",
+    "name_en": "Argentina",
+    "name_ja": "Argentina",
+    "is_active": true,
+    "geometry_id": "032",
+    "sort_order": 100,
+    "draw_order": 1000100
+  },
+  {
+    "place_code": "AS",
+    "type": "sovereign",
+    "name_en": "American Samoa",
+    "name_ja": "American Samoa",
+    "is_active": true,
+    "geometry_id": "016",
+    "sort_order": 110,
+    "draw_order": 1000110
+  },
+  {
+    "place_code": "AT",
+    "type": "sovereign",
+    "name_en": "Austria",
+    "name_ja": "Austria",
+    "is_active": true,
+    "geometry_id": "040",
+    "sort_order": 120,
+    "draw_order": 1000120
+  },
+  {
+    "place_code": "AU",
+    "type": "sovereign",
+    "name_en": "Australia",
+    "name_ja": "Australia",
+    "is_active": true,
+    "geometry_id": "036",
+    "sort_order": 130,
+    "draw_order": 1000130
+  },
+  {
+    "place_code": "AW",
+    "type": "sovereign",
+    "name_en": "Aruba",
+    "name_ja": "Aruba",
+    "is_active": true,
+    "geometry_id": "533",
+    "sort_order": 140,
+    "draw_order": 1000140
+  },
+  {
+    "place_code": "AX",
+    "type": "sovereign",
+    "name_en": "Åland",
+    "name_ja": "Åland",
+    "is_active": true,
+    "geometry_id": "248",
+    "sort_order": 150,
+    "draw_order": 1000150
+  },
+  {
+    "place_code": "AZ",
+    "type": "sovereign",
+    "name_en": "Azerbaijan",
+    "name_ja": "Azerbaijan",
+    "is_active": true,
+    "geometry_id": "031",
+    "sort_order": 160,
+    "draw_order": 1000160
+  },
+  {
+    "place_code": "BA",
+    "type": "sovereign",
+    "name_en": "Bosnia and Herz.",
+    "name_ja": "Bosnia and Herz.",
+    "is_active": true,
+    "geometry_id": "070",
+    "sort_order": 170,
+    "draw_order": 1000170
+  },
+  {
+    "place_code": "BB",
+    "type": "sovereign",
+    "name_en": "Barbados",
+    "name_ja": "Barbados",
+    "is_active": true,
+    "geometry_id": "052",
+    "sort_order": 180,
+    "draw_order": 1000180
+  },
+  {
+    "place_code": "BD",
+    "type": "sovereign",
+    "name_en": "Bangladesh",
+    "name_ja": "Bangladesh",
+    "is_active": true,
+    "geometry_id": "050",
+    "sort_order": 190,
+    "draw_order": 1000190
+  },
+  {
+    "place_code": "BE",
+    "type": "sovereign",
+    "name_en": "Belgium",
+    "name_ja": "Belgium",
+    "is_active": true,
+    "geometry_id": "056",
+    "sort_order": 200,
+    "draw_order": 1000200
+  },
+  {
+    "place_code": "BF",
+    "type": "sovereign",
+    "name_en": "Burkina Faso",
+    "name_ja": "Burkina Faso",
+    "is_active": true,
+    "geometry_id": "854",
+    "sort_order": 210,
+    "draw_order": 1000210
+  },
+  {
+    "place_code": "BG",
+    "type": "sovereign",
+    "name_en": "Bulgaria",
+    "name_ja": "Bulgaria",
+    "is_active": true,
+    "geometry_id": "100",
+    "sort_order": 220,
+    "draw_order": 1000220
+  },
+  {
+    "place_code": "BH",
+    "type": "sovereign",
+    "name_en": "Bahrain",
+    "name_ja": "Bahrain",
+    "is_active": true,
+    "geometry_id": "048",
+    "sort_order": 230,
+    "draw_order": 1000230
+  },
+  {
+    "place_code": "BI",
+    "type": "sovereign",
+    "name_en": "Burundi",
+    "name_ja": "Burundi",
+    "is_active": true,
+    "geometry_id": "108",
+    "sort_order": 240,
+    "draw_order": 1000240
+  },
+  {
+    "place_code": "BJ",
+    "type": "sovereign",
+    "name_en": "Benin",
+    "name_ja": "Benin",
+    "is_active": true,
+    "geometry_id": "204",
+    "sort_order": 250,
+    "draw_order": 1000250
+  },
+  {
+    "place_code": "BL",
+    "type": "sovereign",
+    "name_en": "St-Barthélemy",
+    "name_ja": "St-Barthélemy",
+    "is_active": true,
+    "geometry_id": "652",
+    "sort_order": 260,
+    "draw_order": 1000260
+  },
+  {
+    "place_code": "BM",
+    "type": "sovereign",
+    "name_en": "Bermuda",
+    "name_ja": "Bermuda",
+    "is_active": true,
+    "geometry_id": "060",
+    "sort_order": 270,
+    "draw_order": 1000270
+  },
+  {
+    "place_code": "BN",
+    "type": "sovereign",
+    "name_en": "Brunei",
+    "name_ja": "Brunei",
+    "is_active": true,
+    "geometry_id": "096",
+    "sort_order": 280,
+    "draw_order": 1000280
+  },
+  {
+    "place_code": "BO",
+    "type": "sovereign",
+    "name_en": "Bolivia",
+    "name_ja": "Bolivia",
+    "is_active": true,
+    "geometry_id": "068",
+    "sort_order": 290,
+    "draw_order": 1000290
+  },
+  {
+    "place_code": "BR",
+    "type": "sovereign",
+    "name_en": "Brazil",
+    "name_ja": "Brazil",
+    "is_active": true,
+    "geometry_id": "076",
+    "sort_order": 300,
+    "draw_order": 1000300
+  },
+  {
+    "place_code": "BS",
+    "type": "sovereign",
+    "name_en": "Bahamas",
+    "name_ja": "Bahamas",
+    "is_active": true,
+    "geometry_id": "044",
+    "sort_order": 310,
+    "draw_order": 1000310
+  },
+  {
+    "place_code": "BT",
+    "type": "sovereign",
+    "name_en": "Bhutan",
+    "name_ja": "Bhutan",
+    "is_active": true,
+    "geometry_id": "064",
+    "sort_order": 320,
+    "draw_order": 1000320
+  },
+  {
+    "place_code": "BW",
+    "type": "sovereign",
+    "name_en": "Botswana",
+    "name_ja": "Botswana",
+    "is_active": true,
+    "geometry_id": "072",
+    "sort_order": 330,
+    "draw_order": 1000330
+  },
+  {
+    "place_code": "BY",
+    "type": "sovereign",
+    "name_en": "Belarus",
+    "name_ja": "Belarus",
+    "is_active": true,
+    "geometry_id": "112",
+    "sort_order": 340,
+    "draw_order": 1000340
+  },
+  {
+    "place_code": "BZ",
+    "type": "sovereign",
+    "name_en": "Belize",
+    "name_ja": "Belize",
+    "is_active": true,
+    "geometry_id": "084",
+    "sort_order": 350,
+    "draw_order": 1000350
+  },
+  {
+    "place_code": "CA",
+    "type": "sovereign",
+    "name_en": "Canada",
+    "name_ja": "Canada",
+    "is_active": true,
+    "geometry_id": "124",
+    "sort_order": 360,
+    "draw_order": 1000360
+  },
+  {
+    "place_code": "CD",
+    "type": "sovereign",
+    "name_en": "Dem. Rep. Congo",
+    "name_ja": "Dem. Rep. Congo",
+    "is_active": true,
+    "geometry_id": "180",
+    "sort_order": 370,
+    "draw_order": 1000370
+  },
+  {
+    "place_code": "CF",
+    "type": "sovereign",
+    "name_en": "Central African Rep.",
+    "name_ja": "Central African Rep.",
+    "is_active": true,
+    "geometry_id": "140",
+    "sort_order": 380,
+    "draw_order": 1000380
+  },
+  {
+    "place_code": "CG",
+    "type": "sovereign",
+    "name_en": "Congo",
+    "name_ja": "Congo",
+    "is_active": true,
+    "geometry_id": "178",
+    "sort_order": 390,
+    "draw_order": 1000390
+  },
+  {
+    "place_code": "CH",
+    "type": "sovereign",
+    "name_en": "Switzerland",
+    "name_ja": "Switzerland",
+    "is_active": true,
+    "geometry_id": "756",
+    "sort_order": 400,
+    "draw_order": 1000400
+  },
+  {
+    "place_code": "CI",
+    "type": "sovereign",
+    "name_en": "Côte d'Ivoire",
+    "name_ja": "Côte d'Ivoire",
+    "is_active": true,
+    "geometry_id": "384",
+    "sort_order": 410,
+    "draw_order": 1000410
+  },
+  {
+    "place_code": "CK",
+    "type": "sovereign",
+    "name_en": "Cook Is.",
+    "name_ja": "Cook Is.",
+    "is_active": true,
+    "geometry_id": "184",
+    "sort_order": 420,
+    "draw_order": 1000420
+  },
+  {
+    "place_code": "CL",
+    "type": "sovereign",
+    "name_en": "Chile",
+    "name_ja": "Chile",
+    "is_active": true,
+    "geometry_id": "152",
+    "sort_order": 430,
+    "draw_order": 1000430
+  },
+  {
+    "place_code": "CM",
+    "type": "sovereign",
+    "name_en": "Cameroon",
+    "name_ja": "Cameroon",
+    "is_active": true,
+    "geometry_id": "120",
+    "sort_order": 440,
+    "draw_order": 1000440
+  },
+  {
+    "place_code": "CN",
+    "type": "sovereign",
+    "name_en": "China",
+    "name_ja": "China",
+    "is_active": true,
+    "geometry_id": "156",
+    "sort_order": 450,
+    "draw_order": 1000450
+  },
+  {
+    "place_code": "CO",
+    "type": "sovereign",
+    "name_en": "Colombia",
+    "name_ja": "Colombia",
+    "is_active": true,
+    "geometry_id": "170",
+    "sort_order": 460,
+    "draw_order": 1000460
+  },
+  {
+    "place_code": "CR",
+    "type": "sovereign",
+    "name_en": "Costa Rica",
+    "name_ja": "Costa Rica",
+    "is_active": true,
+    "geometry_id": "188",
+    "sort_order": 470,
+    "draw_order": 1000470
+  },
+  {
+    "place_code": "CU",
+    "type": "sovereign",
+    "name_en": "Cuba",
+    "name_ja": "Cuba",
+    "is_active": true,
+    "geometry_id": "192",
+    "sort_order": 480,
+    "draw_order": 1000480
+  },
+  {
+    "place_code": "CV",
+    "type": "sovereign",
+    "name_en": "Cabo Verde",
+    "name_ja": "Cabo Verde",
+    "is_active": true,
+    "geometry_id": "132",
+    "sort_order": 490,
+    "draw_order": 1000490
+  },
+  {
+    "place_code": "CW",
+    "type": "sovereign",
+    "name_en": "Curaçao",
+    "name_ja": "Curaçao",
+    "is_active": true,
+    "geometry_id": "531",
+    "sort_order": 500,
+    "draw_order": 1000500
+  },
+  {
+    "place_code": "CY",
+    "type": "sovereign",
+    "name_en": "Cyprus",
+    "name_ja": "Cyprus",
+    "is_active": true,
+    "geometry_id": "196",
+    "sort_order": 510,
+    "draw_order": 1000510
+  },
+  {
+    "place_code": "CZ",
+    "type": "sovereign",
+    "name_en": "Czechia",
+    "name_ja": "Czechia",
+    "is_active": true,
+    "geometry_id": "203",
+    "sort_order": 520,
+    "draw_order": 1000520
+  },
+  {
+    "place_code": "DE",
+    "type": "sovereign",
+    "name_en": "Germany",
+    "name_ja": "Germany",
+    "is_active": true,
+    "geometry_id": "276",
+    "sort_order": 530,
+    "draw_order": 1000530
+  },
+  {
+    "place_code": "DJ",
+    "type": "sovereign",
+    "name_en": "Djibouti",
+    "name_ja": "Djibouti",
+    "is_active": true,
+    "geometry_id": "262",
+    "sort_order": 540,
+    "draw_order": 1000540
+  },
+  {
+    "place_code": "DK",
+    "type": "sovereign",
+    "name_en": "Denmark",
+    "name_ja": "Denmark",
+    "is_active": true,
+    "geometry_id": "208",
+    "sort_order": 550,
+    "draw_order": 1000550
+  },
+  {
+    "place_code": "DM",
+    "type": "sovereign",
+    "name_en": "Dominica",
+    "name_ja": "Dominica",
+    "is_active": true,
+    "geometry_id": "212",
+    "sort_order": 560,
+    "draw_order": 1000560
+  },
+  {
+    "place_code": "DO",
+    "type": "sovereign",
+    "name_en": "Dominican Rep.",
+    "name_ja": "Dominican Rep.",
+    "is_active": true,
+    "geometry_id": "214",
+    "sort_order": 570,
+    "draw_order": 1000570
+  },
+  {
+    "place_code": "DZ",
+    "type": "sovereign",
+    "name_en": "Algeria",
+    "name_ja": "Algeria",
+    "is_active": true,
+    "geometry_id": "012",
+    "sort_order": 580,
+    "draw_order": 1000580
+  },
+  {
+    "place_code": "EC",
+    "type": "sovereign",
+    "name_en": "Ecuador",
+    "name_ja": "Ecuador",
+    "is_active": true,
+    "geometry_id": "218",
+    "sort_order": 590,
+    "draw_order": 1000590
+  },
+  {
+    "place_code": "EE",
+    "type": "sovereign",
+    "name_en": "Estonia",
+    "name_ja": "Estonia",
+    "is_active": true,
+    "geometry_id": "233",
+    "sort_order": 600,
+    "draw_order": 1000600
+  },
+  {
+    "place_code": "EG",
+    "type": "sovereign",
+    "name_en": "Egypt",
+    "name_ja": "Egypt",
+    "is_active": true,
+    "geometry_id": "818",
+    "sort_order": 610,
+    "draw_order": 1000610
+  },
+  {
+    "place_code": "EH",
+    "type": "territory",
+    "name_en": "W. Sahara",
+    "name_ja": "W. Sahara",
+    "is_active": true,
+    "geometry_id": "732",
+    "sort_order": 620,
+    "draw_order": 2000620
+  },
+  {
+    "place_code": "ER",
+    "type": "sovereign",
+    "name_en": "Eritrea",
+    "name_ja": "Eritrea",
+    "is_active": true,
+    "geometry_id": "232",
+    "sort_order": 630,
+    "draw_order": 1000630
+  },
+  {
+    "place_code": "ES",
+    "type": "sovereign",
+    "name_en": "Spain",
+    "name_ja": "Spain",
+    "is_active": true,
+    "geometry_id": "724",
+    "sort_order": 640,
+    "draw_order": 1000640
+  },
+  {
+    "place_code": "ET",
+    "type": "sovereign",
+    "name_en": "Ethiopia",
+    "name_ja": "Ethiopia",
+    "is_active": true,
+    "geometry_id": "231",
+    "sort_order": 650,
+    "draw_order": 1000650
+  },
+  {
+    "place_code": "FI",
+    "type": "sovereign",
+    "name_en": "Finland",
+    "name_ja": "Finland",
+    "is_active": true,
+    "geometry_id": "246",
+    "sort_order": 660,
+    "draw_order": 1000660
+  },
+  {
+    "place_code": "FJ",
+    "type": "sovereign",
+    "name_en": "Fiji",
+    "name_ja": "Fiji",
+    "is_active": true,
+    "geometry_id": "242",
+    "sort_order": 670,
+    "draw_order": 1000670
+  },
+  {
+    "place_code": "FK",
+    "type": "sovereign",
+    "name_en": "Falkland Is.",
+    "name_ja": "Falkland Is.",
+    "is_active": true,
+    "geometry_id": "238",
+    "sort_order": 680,
+    "draw_order": 1000680
+  },
+  {
+    "place_code": "FM",
+    "type": "sovereign",
+    "name_en": "Micronesia",
+    "name_ja": "Micronesia",
+    "is_active": true,
+    "geometry_id": "583",
+    "sort_order": 690,
+    "draw_order": 1000690
+  },
+  {
+    "place_code": "FO",
+    "type": "sovereign",
+    "name_en": "Faeroe Is.",
+    "name_ja": "Faeroe Is.",
+    "is_active": true,
+    "geometry_id": "234",
+    "sort_order": 700,
+    "draw_order": 1000700
+  },
+  {
+    "place_code": "FR",
+    "type": "sovereign",
+    "name_en": "France",
+    "name_ja": "France",
+    "is_active": true,
+    "geometry_id": "250",
+    "sort_order": 710,
+    "draw_order": 1000710
+  },
+  {
+    "place_code": "GA",
+    "type": "sovereign",
+    "name_en": "Gabon",
+    "name_ja": "Gabon",
+    "is_active": true,
+    "geometry_id": "266",
+    "sort_order": 720,
+    "draw_order": 1000720
+  },
+  {
+    "place_code": "GB",
+    "type": "sovereign",
+    "name_en": "United Kingdom",
+    "name_ja": "United Kingdom",
+    "is_active": true,
+    "geometry_id": "826",
+    "sort_order": 730,
+    "draw_order": 1000730
+  },
+  {
+    "place_code": "GD",
+    "type": "sovereign",
+    "name_en": "Grenada",
+    "name_ja": "Grenada",
+    "is_active": true,
+    "geometry_id": "308",
+    "sort_order": 740,
+    "draw_order": 1000740
+  },
+  {
+    "place_code": "GE",
+    "type": "sovereign",
+    "name_en": "Georgia",
+    "name_ja": "Georgia",
+    "is_active": true,
+    "geometry_id": "268",
+    "sort_order": 750,
+    "draw_order": 1000750
+  },
+  {
+    "place_code": "GG",
+    "type": "sovereign",
+    "name_en": "Guernsey",
+    "name_ja": "Guernsey",
+    "is_active": true,
+    "geometry_id": "831",
+    "sort_order": 760,
+    "draw_order": 1000760
+  },
+  {
+    "place_code": "GH",
+    "type": "sovereign",
+    "name_en": "Ghana",
+    "name_ja": "Ghana",
+    "is_active": true,
+    "geometry_id": "288",
+    "sort_order": 770,
+    "draw_order": 1000770
+  },
+  {
+    "place_code": "GL",
+    "type": "sovereign",
+    "name_en": "Greenland",
+    "name_ja": "Greenland",
+    "is_active": true,
+    "geometry_id": "304",
+    "sort_order": 780,
+    "draw_order": 1000780
+  },
+  {
+    "place_code": "GM",
+    "type": "sovereign",
+    "name_en": "Gambia",
+    "name_ja": "Gambia",
+    "is_active": true,
+    "geometry_id": "270",
+    "sort_order": 790,
+    "draw_order": 1000790
+  },
+  {
+    "place_code": "GN",
+    "type": "sovereign",
+    "name_en": "Guinea",
+    "name_ja": "Guinea",
+    "is_active": true,
+    "geometry_id": "324",
+    "sort_order": 800,
+    "draw_order": 1000800
+  },
+  {
+    "place_code": "GQ",
+    "type": "sovereign",
+    "name_en": "Eq. Guinea",
+    "name_ja": "Eq. Guinea",
+    "is_active": true,
+    "geometry_id": "226",
+    "sort_order": 810,
+    "draw_order": 1000810
+  },
+  {
+    "place_code": "GR",
+    "type": "sovereign",
+    "name_en": "Greece",
+    "name_ja": "Greece",
+    "is_active": true,
+    "geometry_id": "300",
+    "sort_order": 820,
+    "draw_order": 1000820
+  },
+  {
+    "place_code": "GS",
+    "type": "sovereign",
+    "name_en": "S. Geo. and the Is.",
+    "name_ja": "S. Geo. and the Is.",
+    "is_active": true,
+    "geometry_id": "239",
+    "sort_order": 830,
+    "draw_order": 1000830
+  },
+  {
+    "place_code": "GT",
+    "type": "sovereign",
+    "name_en": "Guatemala",
+    "name_ja": "Guatemala",
+    "is_active": true,
+    "geometry_id": "320",
+    "sort_order": 840,
+    "draw_order": 1000840
+  },
+  {
+    "place_code": "GU",
+    "type": "sovereign",
+    "name_en": "Guam",
+    "name_ja": "Guam",
+    "is_active": true,
+    "geometry_id": "316",
+    "sort_order": 850,
+    "draw_order": 1000850
+  },
+  {
+    "place_code": "GW",
+    "type": "sovereign",
+    "name_en": "Guinea-Bissau",
+    "name_ja": "Guinea-Bissau",
+    "is_active": true,
+    "geometry_id": "624",
+    "sort_order": 860,
+    "draw_order": 1000860
+  },
+  {
+    "place_code": "GY",
+    "type": "sovereign",
+    "name_en": "Guyana",
+    "name_ja": "Guyana",
+    "is_active": true,
+    "geometry_id": "328",
+    "sort_order": 870,
+    "draw_order": 1000870
+  },
+  {
+    "place_code": "HK",
+    "type": "territory",
+    "name_en": "Hong Kong",
+    "name_ja": "Hong Kong",
+    "is_active": true,
+    "geometry_id": "344",
+    "sort_order": 880,
+    "draw_order": 2000880
+  },
+  {
+    "place_code": "HM",
+    "type": "sovereign",
+    "name_en": "Heard I. and McDonald Is.",
+    "name_ja": "Heard I. and McDonald Is.",
+    "is_active": true,
+    "geometry_id": "334",
+    "sort_order": 890,
+    "draw_order": 1000890
+  },
+  {
+    "place_code": "HN",
+    "type": "sovereign",
+    "name_en": "Honduras",
+    "name_ja": "Honduras",
+    "is_active": true,
+    "geometry_id": "340",
+    "sort_order": 900,
+    "draw_order": 1000900
+  },
+  {
+    "place_code": "HR",
+    "type": "sovereign",
+    "name_en": "Croatia",
+    "name_ja": "Croatia",
+    "is_active": true,
+    "geometry_id": "191",
+    "sort_order": 910,
+    "draw_order": 1000910
+  },
+  {
+    "place_code": "HT",
+    "type": "sovereign",
+    "name_en": "Haiti",
+    "name_ja": "Haiti",
+    "is_active": true,
+    "geometry_id": "332",
+    "sort_order": 920,
+    "draw_order": 1000920
+  },
+  {
+    "place_code": "HU",
+    "type": "sovereign",
+    "name_en": "Hungary",
+    "name_ja": "Hungary",
+    "is_active": true,
+    "geometry_id": "348",
+    "sort_order": 930,
+    "draw_order": 1000930
+  },
+  {
+    "place_code": "ID",
+    "type": "sovereign",
+    "name_en": "Indonesia",
+    "name_ja": "Indonesia",
+    "is_active": true,
+    "geometry_id": "360",
+    "sort_order": 940,
+    "draw_order": 1000940
+  },
+  {
+    "place_code": "IE",
+    "type": "sovereign",
+    "name_en": "Ireland",
+    "name_ja": "Ireland",
+    "is_active": true,
+    "geometry_id": "372",
+    "sort_order": 950,
+    "draw_order": 1000950
+  },
+  {
+    "place_code": "IL",
+    "type": "sovereign",
+    "name_en": "Israel",
+    "name_ja": "Israel",
+    "is_active": true,
+    "geometry_id": "376",
+    "sort_order": 960,
+    "draw_order": 1000960
+  },
+  {
+    "place_code": "IM",
+    "type": "sovereign",
+    "name_en": "Isle of Man",
+    "name_ja": "Isle of Man",
+    "is_active": true,
+    "geometry_id": "833",
+    "sort_order": 970,
+    "draw_order": 1000970
+  },
+  {
+    "place_code": "IN",
+    "type": "sovereign",
+    "name_en": "India",
+    "name_ja": "India",
+    "is_active": true,
+    "geometry_id": "356",
+    "sort_order": 980,
+    "draw_order": 1000980
+  },
+  {
+    "place_code": "IO",
+    "type": "sovereign",
+    "name_en": "Br. Indian Ocean Ter.",
+    "name_ja": "Br. Indian Ocean Ter.",
+    "is_active": true,
+    "geometry_id": "086",
+    "sort_order": 990,
+    "draw_order": 1000990
+  },
+  {
+    "place_code": "IQ",
+    "type": "sovereign",
+    "name_en": "Iraq",
+    "name_ja": "Iraq",
+    "is_active": true,
+    "geometry_id": "368",
+    "sort_order": 1000,
+    "draw_order": 1001000
+  },
+  {
+    "place_code": "IR",
+    "type": "sovereign",
+    "name_en": "Iran",
+    "name_ja": "Iran",
+    "is_active": true,
+    "geometry_id": "364",
+    "sort_order": 1010,
+    "draw_order": 1001010
+  },
+  {
+    "place_code": "IS",
+    "type": "sovereign",
+    "name_en": "Iceland",
+    "name_ja": "Iceland",
+    "is_active": true,
+    "geometry_id": "352",
+    "sort_order": 1020,
+    "draw_order": 1001020
+  },
+  {
+    "place_code": "IT",
+    "type": "sovereign",
+    "name_en": "Italy",
+    "name_ja": "Italy",
+    "is_active": true,
+    "geometry_id": "380",
+    "sort_order": 1030,
+    "draw_order": 1001030
+  },
+  {
+    "place_code": "JE",
+    "type": "sovereign",
+    "name_en": "Jersey",
+    "name_ja": "Jersey",
+    "is_active": true,
+    "geometry_id": "832",
+    "sort_order": 1040,
+    "draw_order": 1001040
+  },
+  {
+    "place_code": "JM",
+    "type": "sovereign",
+    "name_en": "Jamaica",
+    "name_ja": "Jamaica",
+    "is_active": true,
+    "geometry_id": "388",
+    "sort_order": 1050,
+    "draw_order": 1001050
+  },
+  {
+    "place_code": "JO",
+    "type": "sovereign",
+    "name_en": "Jordan",
+    "name_ja": "Jordan",
+    "is_active": true,
+    "geometry_id": "400",
+    "sort_order": 1060,
+    "draw_order": 1001060
+  },
+  {
+    "place_code": "JP",
+    "type": "sovereign",
+    "name_en": "Japan",
+    "name_ja": "Japan",
+    "is_active": true,
+    "geometry_id": "392",
+    "sort_order": 1070,
+    "draw_order": 1001070
+  },
+  {
+    "place_code": "KE",
+    "type": "sovereign",
+    "name_en": "Kenya",
+    "name_ja": "Kenya",
+    "is_active": true,
+    "geometry_id": "404",
+    "sort_order": 1080,
+    "draw_order": 1001080
+  },
+  {
+    "place_code": "KG",
+    "type": "sovereign",
+    "name_en": "Kyrgyzstan",
+    "name_ja": "Kyrgyzstan",
+    "is_active": true,
+    "geometry_id": "417",
+    "sort_order": 1090,
+    "draw_order": 1001090
+  },
+  {
+    "place_code": "KH",
+    "type": "sovereign",
+    "name_en": "Cambodia",
+    "name_ja": "Cambodia",
+    "is_active": true,
+    "geometry_id": "116",
+    "sort_order": 1100,
+    "draw_order": 1001100
+  },
+  {
+    "place_code": "KI",
+    "type": "sovereign",
+    "name_en": "Kiribati",
+    "name_ja": "Kiribati",
+    "is_active": true,
+    "geometry_id": "296",
+    "sort_order": 1110,
+    "draw_order": 1001110
+  },
+  {
+    "place_code": "KM",
+    "type": "sovereign",
+    "name_en": "Comoros",
+    "name_ja": "Comoros",
+    "is_active": true,
+    "geometry_id": "174",
+    "sort_order": 1120,
+    "draw_order": 1001120
+  },
+  {
+    "place_code": "KN",
+    "type": "sovereign",
+    "name_en": "St. Kitts and Nevis",
+    "name_ja": "St. Kitts and Nevis",
+    "is_active": true,
+    "geometry_id": "659",
+    "sort_order": 1130,
+    "draw_order": 1001130
+  },
+  {
+    "place_code": "KP",
+    "type": "sovereign",
+    "name_en": "North Korea",
+    "name_ja": "North Korea",
+    "is_active": true,
+    "geometry_id": "408",
+    "sort_order": 1140,
+    "draw_order": 1001140
+  },
+  {
+    "place_code": "KR",
+    "type": "sovereign",
+    "name_en": "South Korea",
+    "name_ja": "South Korea",
+    "is_active": true,
+    "geometry_id": "410",
+    "sort_order": 1150,
+    "draw_order": 1001150
+  },
+  {
+    "place_code": "KW",
+    "type": "sovereign",
+    "name_en": "Kuwait",
+    "name_ja": "Kuwait",
+    "is_active": true,
+    "geometry_id": "414",
+    "sort_order": 1160,
+    "draw_order": 1001160
+  },
+  {
+    "place_code": "KY",
+    "type": "sovereign",
+    "name_en": "Cayman Is.",
+    "name_ja": "Cayman Is.",
+    "is_active": true,
+    "geometry_id": "136",
+    "sort_order": 1170,
+    "draw_order": 1001170
+  },
+  {
+    "place_code": "KZ",
+    "type": "sovereign",
+    "name_en": "Kazakhstan",
+    "name_ja": "Kazakhstan",
+    "is_active": true,
+    "geometry_id": "398",
+    "sort_order": 1180,
+    "draw_order": 1001180
+  },
+  {
+    "place_code": "LA",
+    "type": "sovereign",
+    "name_en": "Laos",
+    "name_ja": "Laos",
+    "is_active": true,
+    "geometry_id": "418",
+    "sort_order": 1190,
+    "draw_order": 1001190
+  },
+  {
+    "place_code": "LB",
+    "type": "sovereign",
+    "name_en": "Lebanon",
+    "name_ja": "Lebanon",
+    "is_active": true,
+    "geometry_id": "422",
+    "sort_order": 1200,
+    "draw_order": 1001200
+  },
+  {
+    "place_code": "LC",
+    "type": "sovereign",
+    "name_en": "Saint Lucia",
+    "name_ja": "Saint Lucia",
+    "is_active": true,
+    "geometry_id": "662",
+    "sort_order": 1210,
+    "draw_order": 1001210
+  },
+  {
+    "place_code": "LI",
+    "type": "sovereign",
+    "name_en": "Liechtenstein",
+    "name_ja": "Liechtenstein",
+    "is_active": true,
+    "geometry_id": "438",
+    "sort_order": 1220,
+    "draw_order": 1001220
+  },
+  {
+    "place_code": "LK",
+    "type": "sovereign",
+    "name_en": "Sri Lanka",
+    "name_ja": "Sri Lanka",
+    "is_active": true,
+    "geometry_id": "144",
+    "sort_order": 1230,
+    "draw_order": 1001230
+  },
+  {
+    "place_code": "LR",
+    "type": "sovereign",
+    "name_en": "Liberia",
+    "name_ja": "Liberia",
+    "is_active": true,
+    "geometry_id": "430",
+    "sort_order": 1240,
+    "draw_order": 1001240
+  },
+  {
+    "place_code": "LS",
+    "type": "sovereign",
+    "name_en": "Lesotho",
+    "name_ja": "Lesotho",
+    "is_active": true,
+    "geometry_id": "426",
+    "sort_order": 1250,
+    "draw_order": 1001250
+  },
+  {
+    "place_code": "LT",
+    "type": "sovereign",
+    "name_en": "Lithuania",
+    "name_ja": "Lithuania",
+    "is_active": true,
+    "geometry_id": "440",
+    "sort_order": 1260,
+    "draw_order": 1001260
+  },
+  {
+    "place_code": "LU",
+    "type": "sovereign",
+    "name_en": "Luxembourg",
+    "name_ja": "Luxembourg",
+    "is_active": true,
+    "geometry_id": "442",
+    "sort_order": 1270,
+    "draw_order": 1001270
+  },
+  {
+    "place_code": "LV",
+    "type": "sovereign",
+    "name_en": "Latvia",
+    "name_ja": "Latvia",
+    "is_active": true,
+    "geometry_id": "428",
+    "sort_order": 1280,
+    "draw_order": 1001280
+  },
+  {
+    "place_code": "LY",
+    "type": "sovereign",
+    "name_en": "Libya",
+    "name_ja": "Libya",
+    "is_active": true,
+    "geometry_id": "434",
+    "sort_order": 1290,
+    "draw_order": 1001290
+  },
+  {
+    "place_code": "MA",
+    "type": "sovereign",
+    "name_en": "Morocco",
+    "name_ja": "Morocco",
+    "is_active": true,
+    "geometry_id": "504",
+    "sort_order": 1300,
+    "draw_order": 1001300
+  },
+  {
+    "place_code": "MC",
+    "type": "sovereign",
+    "name_en": "Monaco",
+    "name_ja": "Monaco",
+    "is_active": true,
+    "geometry_id": "492",
+    "sort_order": 1310,
+    "draw_order": 1001310
+  },
+  {
+    "place_code": "MD",
+    "type": "sovereign",
+    "name_en": "Moldova",
+    "name_ja": "Moldova",
+    "is_active": true,
+    "geometry_id": "498",
+    "sort_order": 1320,
+    "draw_order": 1001320
+  },
+  {
+    "place_code": "ME",
+    "type": "sovereign",
+    "name_en": "Montenegro",
+    "name_ja": "Montenegro",
+    "is_active": true,
+    "geometry_id": "499",
+    "sort_order": 1330,
+    "draw_order": 1001330
+  },
+  {
+    "place_code": "MF",
+    "type": "sovereign",
+    "name_en": "St-Martin",
+    "name_ja": "St-Martin",
+    "is_active": true,
+    "geometry_id": "663",
+    "sort_order": 1340,
+    "draw_order": 1001340
+  },
+  {
+    "place_code": "MG",
+    "type": "sovereign",
+    "name_en": "Madagascar",
+    "name_ja": "Madagascar",
+    "is_active": true,
+    "geometry_id": "450",
+    "sort_order": 1350,
+    "draw_order": 1001350
+  },
+  {
+    "place_code": "MH",
+    "type": "sovereign",
+    "name_en": "Marshall Is.",
+    "name_ja": "Marshall Is.",
+    "is_active": true,
+    "geometry_id": "584",
+    "sort_order": 1360,
+    "draw_order": 1001360
+  },
+  {
+    "place_code": "MK",
+    "type": "sovereign",
+    "name_en": "Macedonia",
+    "name_ja": "Macedonia",
+    "is_active": true,
+    "geometry_id": "807",
+    "sort_order": 1370,
+    "draw_order": 1001370
+  },
+  {
+    "place_code": "ML",
+    "type": "sovereign",
+    "name_en": "Mali",
+    "name_ja": "Mali",
+    "is_active": true,
+    "geometry_id": "466",
+    "sort_order": 1380,
+    "draw_order": 1001380
+  },
+  {
+    "place_code": "MM",
+    "type": "sovereign",
+    "name_en": "Myanmar",
+    "name_ja": "Myanmar",
+    "is_active": true,
+    "geometry_id": "104",
+    "sort_order": 1390,
+    "draw_order": 1001390
+  },
+  {
+    "place_code": "MN",
+    "type": "sovereign",
+    "name_en": "Mongolia",
+    "name_ja": "Mongolia",
+    "is_active": true,
+    "geometry_id": "496",
+    "sort_order": 1400,
+    "draw_order": 1001400
+  },
+  {
+    "place_code": "MO",
+    "type": "territory",
+    "name_en": "Macao",
+    "name_ja": "Macao",
+    "is_active": true,
+    "geometry_id": "446",
+    "sort_order": 1410,
+    "draw_order": 2001410
+  },
+  {
+    "place_code": "MP",
+    "type": "sovereign",
+    "name_en": "N. Mariana Is.",
+    "name_ja": "N. Mariana Is.",
+    "is_active": true,
+    "geometry_id": "580",
+    "sort_order": 1420,
+    "draw_order": 1001420
+  },
+  {
+    "place_code": "MR",
+    "type": "sovereign",
+    "name_en": "Mauritania",
+    "name_ja": "Mauritania",
+    "is_active": true,
+    "geometry_id": "478",
+    "sort_order": 1430,
+    "draw_order": 1001430
+  },
+  {
+    "place_code": "MS",
+    "type": "sovereign",
+    "name_en": "Montserrat",
+    "name_ja": "Montserrat",
+    "is_active": true,
+    "geometry_id": "500",
+    "sort_order": 1440,
+    "draw_order": 1001440
+  },
+  {
+    "place_code": "MT",
+    "type": "sovereign",
+    "name_en": "Malta",
+    "name_ja": "Malta",
+    "is_active": true,
+    "geometry_id": "470",
+    "sort_order": 1450,
+    "draw_order": 1001450
+  },
+  {
+    "place_code": "MU",
+    "type": "sovereign",
+    "name_en": "Mauritius",
+    "name_ja": "Mauritius",
+    "is_active": true,
+    "geometry_id": "480",
+    "sort_order": 1460,
+    "draw_order": 1001460
+  },
+  {
+    "place_code": "MV",
+    "type": "sovereign",
+    "name_en": "Maldives",
+    "name_ja": "Maldives",
+    "is_active": true,
+    "geometry_id": "462",
+    "sort_order": 1470,
+    "draw_order": 1001470
+  },
+  {
+    "place_code": "MW",
+    "type": "sovereign",
+    "name_en": "Malawi",
+    "name_ja": "Malawi",
+    "is_active": true,
+    "geometry_id": "454",
+    "sort_order": 1480,
+    "draw_order": 1001480
+  },
+  {
+    "place_code": "MX",
+    "type": "sovereign",
+    "name_en": "Mexico",
+    "name_ja": "Mexico",
+    "is_active": true,
+    "geometry_id": "484",
+    "sort_order": 1490,
+    "draw_order": 1001490
+  },
+  {
+    "place_code": "MY",
+    "type": "sovereign",
+    "name_en": "Malaysia",
+    "name_ja": "Malaysia",
+    "is_active": true,
+    "geometry_id": "458",
+    "sort_order": 1500,
+    "draw_order": 1001500
+  },
+  {
+    "place_code": "MZ",
+    "type": "sovereign",
+    "name_en": "Mozambique",
+    "name_ja": "Mozambique",
+    "is_active": true,
+    "geometry_id": "508",
+    "sort_order": 1510,
+    "draw_order": 1001510
+  },
+  {
+    "place_code": "NA",
+    "type": "sovereign",
+    "name_en": "Namibia",
+    "name_ja": "Namibia",
+    "is_active": true,
+    "geometry_id": "516",
+    "sort_order": 1520,
+    "draw_order": 1001520
+  },
+  {
+    "place_code": "NC",
+    "type": "sovereign",
+    "name_en": "New Caledonia",
+    "name_ja": "New Caledonia",
+    "is_active": true,
+    "geometry_id": "540",
+    "sort_order": 1530,
+    "draw_order": 1001530
+  },
+  {
+    "place_code": "NE",
+    "type": "sovereign",
+    "name_en": "Niger",
+    "name_ja": "Niger",
+    "is_active": true,
+    "geometry_id": "562",
+    "sort_order": 1540,
+    "draw_order": 1001540
+  },
+  {
+    "place_code": "NF",
+    "type": "sovereign",
+    "name_en": "Norfolk Island",
+    "name_ja": "Norfolk Island",
+    "is_active": true,
+    "geometry_id": "574",
+    "sort_order": 1550,
+    "draw_order": 1001550
+  },
+  {
+    "place_code": "NG",
+    "type": "sovereign",
+    "name_en": "Nigeria",
+    "name_ja": "Nigeria",
+    "is_active": true,
+    "geometry_id": "566",
+    "sort_order": 1560,
+    "draw_order": 1001560
+  },
+  {
+    "place_code": "NI",
+    "type": "sovereign",
+    "name_en": "Nicaragua",
+    "name_ja": "Nicaragua",
+    "is_active": true,
+    "geometry_id": "558",
+    "sort_order": 1570,
+    "draw_order": 1001570
+  },
+  {
+    "place_code": "NL",
+    "type": "sovereign",
+    "name_en": "Netherlands",
+    "name_ja": "Netherlands",
+    "is_active": true,
+    "geometry_id": "528",
+    "sort_order": 1580,
+    "draw_order": 1001580
+  },
+  {
+    "place_code": "NO",
+    "type": "sovereign",
+    "name_en": "Norway",
+    "name_ja": "Norway",
+    "is_active": true,
+    "geometry_id": "578",
+    "sort_order": 1590,
+    "draw_order": 1001590
+  },
+  {
+    "place_code": "NP",
+    "type": "sovereign",
+    "name_en": "Nepal",
+    "name_ja": "Nepal",
+    "is_active": true,
+    "geometry_id": "524",
+    "sort_order": 1600,
+    "draw_order": 1001600
+  },
+  {
+    "place_code": "NR",
+    "type": "sovereign",
+    "name_en": "Nauru",
+    "name_ja": "Nauru",
+    "is_active": true,
+    "geometry_id": "520",
+    "sort_order": 1610,
+    "draw_order": 1001610
+  },
+  {
+    "place_code": "NU",
+    "type": "sovereign",
+    "name_en": "Niue",
+    "name_ja": "Niue",
+    "is_active": true,
+    "geometry_id": "570",
+    "sort_order": 1620,
+    "draw_order": 1001620
+  },
+  {
+    "place_code": "NZ",
+    "type": "sovereign",
+    "name_en": "New Zealand",
+    "name_ja": "New Zealand",
+    "is_active": true,
+    "geometry_id": "554",
+    "sort_order": 1630,
+    "draw_order": 1001630
+  },
+  {
+    "place_code": "OM",
+    "type": "sovereign",
+    "name_en": "Oman",
+    "name_ja": "Oman",
+    "is_active": true,
+    "geometry_id": "512",
+    "sort_order": 1640,
+    "draw_order": 1001640
+  },
+  {
+    "place_code": "PA",
+    "type": "sovereign",
+    "name_en": "Panama",
+    "name_ja": "Panama",
+    "is_active": true,
+    "geometry_id": "591",
+    "sort_order": 1650,
+    "draw_order": 1001650
+  },
+  {
+    "place_code": "PE",
+    "type": "sovereign",
+    "name_en": "Peru",
+    "name_ja": "Peru",
+    "is_active": true,
+    "geometry_id": "604",
+    "sort_order": 1660,
+    "draw_order": 1001660
+  },
+  {
+    "place_code": "PF",
+    "type": "sovereign",
+    "name_en": "Fr. Polynesia",
+    "name_ja": "Fr. Polynesia",
+    "is_active": true,
+    "geometry_id": "258",
+    "sort_order": 1670,
+    "draw_order": 1001670
+  },
+  {
+    "place_code": "PG",
+    "type": "sovereign",
+    "name_en": "Papua New Guinea",
+    "name_ja": "Papua New Guinea",
+    "is_active": true,
+    "geometry_id": "598",
+    "sort_order": 1680,
+    "draw_order": 1001680
+  },
+  {
+    "place_code": "PH",
+    "type": "sovereign",
+    "name_en": "Philippines",
+    "name_ja": "Philippines",
+    "is_active": true,
+    "geometry_id": "608",
+    "sort_order": 1690,
+    "draw_order": 1001690
+  },
+  {
+    "place_code": "PK",
+    "type": "sovereign",
+    "name_en": "Pakistan",
+    "name_ja": "Pakistan",
+    "is_active": true,
+    "geometry_id": "586",
+    "sort_order": 1700,
+    "draw_order": 1001700
+  },
+  {
+    "place_code": "PL",
+    "type": "sovereign",
+    "name_en": "Poland",
+    "name_ja": "Poland",
+    "is_active": true,
+    "geometry_id": "616",
+    "sort_order": 1710,
+    "draw_order": 1001710
+  },
+  {
+    "place_code": "PM",
+    "type": "sovereign",
+    "name_en": "St. Pierre and Miquelon",
+    "name_ja": "St. Pierre and Miquelon",
+    "is_active": true,
+    "geometry_id": "666",
+    "sort_order": 1720,
+    "draw_order": 1001720
+  },
+  {
+    "place_code": "PN",
+    "type": "sovereign",
+    "name_en": "Pitcairn Is.",
+    "name_ja": "Pitcairn Is.",
+    "is_active": true,
+    "geometry_id": "612",
+    "sort_order": 1730,
+    "draw_order": 1001730
+  },
+  {
+    "place_code": "PR",
+    "type": "territory",
+    "name_en": "Puerto Rico",
+    "name_ja": "Puerto Rico",
+    "is_active": true,
+    "geometry_id": "630",
+    "sort_order": 1740,
+    "draw_order": 2001740
+  },
+  {
+    "place_code": "PS",
+    "type": "territory",
+    "name_en": "Palestine",
+    "name_ja": "Palestine",
+    "is_active": true,
+    "geometry_id": "275",
+    "sort_order": 1750,
+    "draw_order": 2001750
+  },
+  {
+    "place_code": "PT",
+    "type": "sovereign",
+    "name_en": "Portugal",
+    "name_ja": "Portugal",
+    "is_active": true,
+    "geometry_id": "620",
+    "sort_order": 1760,
+    "draw_order": 1001760
+  },
+  {
+    "place_code": "PW",
+    "type": "sovereign",
+    "name_en": "Palau",
+    "name_ja": "Palau",
+    "is_active": true,
+    "geometry_id": "585",
+    "sort_order": 1770,
+    "draw_order": 1001770
+  },
+  {
+    "place_code": "PY",
+    "type": "sovereign",
+    "name_en": "Paraguay",
+    "name_ja": "Paraguay",
+    "is_active": true,
+    "geometry_id": "600",
+    "sort_order": 1780,
+    "draw_order": 1001780
+  },
+  {
+    "place_code": "QA",
+    "type": "sovereign",
+    "name_en": "Qatar",
+    "name_ja": "Qatar",
+    "is_active": true,
+    "geometry_id": "634",
+    "sort_order": 1790,
+    "draw_order": 1001790
+  },
+  {
+    "place_code": "RO",
+    "type": "sovereign",
+    "name_en": "Romania",
+    "name_ja": "Romania",
+    "is_active": true,
+    "geometry_id": "642",
+    "sort_order": 1800,
+    "draw_order": 1001800
+  },
+  {
+    "place_code": "RS",
+    "type": "sovereign",
+    "name_en": "Serbia",
+    "name_ja": "Serbia",
+    "is_active": true,
+    "geometry_id": "688",
+    "sort_order": 1810,
+    "draw_order": 1001810
+  },
+  {
+    "place_code": "RU",
+    "type": "sovereign",
+    "name_en": "Russia",
+    "name_ja": "Russia",
+    "is_active": true,
+    "geometry_id": "643",
+    "sort_order": 1820,
+    "draw_order": 1001820
+  },
+  {
+    "place_code": "RW",
+    "type": "sovereign",
+    "name_en": "Rwanda",
+    "name_ja": "Rwanda",
+    "is_active": true,
+    "geometry_id": "646",
+    "sort_order": 1830,
+    "draw_order": 1001830
+  },
+  {
+    "place_code": "SA",
+    "type": "sovereign",
+    "name_en": "Saudi Arabia",
+    "name_ja": "Saudi Arabia",
+    "is_active": true,
+    "geometry_id": "682",
+    "sort_order": 1840,
+    "draw_order": 1001840
+  },
+  {
+    "place_code": "SB",
+    "type": "sovereign",
+    "name_en": "Solomon Is.",
+    "name_ja": "Solomon Is.",
+    "is_active": true,
+    "geometry_id": "090",
+    "sort_order": 1850,
+    "draw_order": 1001850
+  },
+  {
+    "place_code": "SC",
+    "type": "sovereign",
+    "name_en": "Seychelles",
+    "name_ja": "Seychelles",
+    "is_active": true,
+    "geometry_id": "690",
+    "sort_order": 1860,
+    "draw_order": 1001860
+  },
+  {
+    "place_code": "SD",
+    "type": "sovereign",
+    "name_en": "Sudan",
+    "name_ja": "Sudan",
+    "is_active": true,
+    "geometry_id": "729",
+    "sort_order": 1870,
+    "draw_order": 1001870
+  },
+  {
+    "place_code": "SE",
+    "type": "sovereign",
+    "name_en": "Sweden",
+    "name_ja": "Sweden",
+    "is_active": true,
+    "geometry_id": "752",
+    "sort_order": 1880,
+    "draw_order": 1001880
+  },
+  {
+    "place_code": "SG",
+    "type": "sovereign",
+    "name_en": "Singapore",
+    "name_ja": "Singapore",
+    "is_active": true,
+    "geometry_id": "702",
+    "sort_order": 1890,
+    "draw_order": 1001890
+  },
+  {
+    "place_code": "SH",
+    "type": "sovereign",
+    "name_en": "Saint Helena",
+    "name_ja": "Saint Helena",
+    "is_active": true,
+    "geometry_id": "654",
+    "sort_order": 1900,
+    "draw_order": 1001900
+  },
+  {
+    "place_code": "SI",
+    "type": "sovereign",
+    "name_en": "Slovenia",
+    "name_ja": "Slovenia",
+    "is_active": true,
+    "geometry_id": "705",
+    "sort_order": 1910,
+    "draw_order": 1001910
+  },
+  {
+    "place_code": "SK",
+    "type": "sovereign",
+    "name_en": "Slovakia",
+    "name_ja": "Slovakia",
+    "is_active": true,
+    "geometry_id": "703",
+    "sort_order": 1920,
+    "draw_order": 1001920
+  },
+  {
+    "place_code": "SL",
+    "type": "sovereign",
+    "name_en": "Sierra Leone",
+    "name_ja": "Sierra Leone",
+    "is_active": true,
+    "geometry_id": "694",
+    "sort_order": 1930,
+    "draw_order": 1001930
+  },
+  {
+    "place_code": "SM",
+    "type": "sovereign",
+    "name_en": "San Marino",
+    "name_ja": "San Marino",
+    "is_active": true,
+    "geometry_id": "674",
+    "sort_order": 1940,
+    "draw_order": 1001940
+  },
+  {
+    "place_code": "SN",
+    "type": "sovereign",
+    "name_en": "Senegal",
+    "name_ja": "Senegal",
+    "is_active": true,
+    "geometry_id": "686",
+    "sort_order": 1950,
+    "draw_order": 1001950
+  },
+  {
+    "place_code": "SO",
+    "type": "sovereign",
+    "name_en": "Somalia",
+    "name_ja": "Somalia",
+    "is_active": true,
+    "geometry_id": "706",
+    "sort_order": 1960,
+    "draw_order": 1001960
+  },
+  {
+    "place_code": "SR",
+    "type": "sovereign",
+    "name_en": "Suriname",
+    "name_ja": "Suriname",
+    "is_active": true,
+    "geometry_id": "740",
+    "sort_order": 1970,
+    "draw_order": 1001970
+  },
+  {
+    "place_code": "SS",
+    "type": "sovereign",
+    "name_en": "S. Sudan",
+    "name_ja": "S. Sudan",
+    "is_active": true,
+    "geometry_id": "728",
+    "sort_order": 1980,
+    "draw_order": 1001980
+  },
+  {
+    "place_code": "ST",
+    "type": "sovereign",
+    "name_en": "São Tomé and Principe",
+    "name_ja": "São Tomé and Principe",
+    "is_active": true,
+    "geometry_id": "678",
+    "sort_order": 1990,
+    "draw_order": 1001990
+  },
+  {
+    "place_code": "SV",
+    "type": "sovereign",
+    "name_en": "El Salvador",
+    "name_ja": "El Salvador",
+    "is_active": true,
+    "geometry_id": "222",
+    "sort_order": 2000,
+    "draw_order": 1002000
+  },
+  {
+    "place_code": "SX",
+    "type": "sovereign",
+    "name_en": "Sint Maarten",
+    "name_ja": "Sint Maarten",
+    "is_active": true,
+    "geometry_id": "534",
+    "sort_order": 2010,
+    "draw_order": 1002010
+  },
+  {
+    "place_code": "SY",
+    "type": "sovereign",
+    "name_en": "Syria",
+    "name_ja": "Syria",
+    "is_active": true,
+    "geometry_id": "760",
+    "sort_order": 2020,
+    "draw_order": 1002020
+  },
+  {
+    "place_code": "SZ",
+    "type": "sovereign",
+    "name_en": "eSwatini",
+    "name_ja": "eSwatini",
+    "is_active": true,
+    "geometry_id": "748",
+    "sort_order": 2030,
+    "draw_order": 1002030
+  },
+  {
+    "place_code": "TC",
+    "type": "sovereign",
+    "name_en": "Turks and Caicos Is.",
+    "name_ja": "Turks and Caicos Is.",
+    "is_active": true,
+    "geometry_id": "796",
+    "sort_order": 2040,
+    "draw_order": 1002040
+  },
+  {
+    "place_code": "TD",
+    "type": "sovereign",
+    "name_en": "Chad",
+    "name_ja": "Chad",
+    "is_active": true,
+    "geometry_id": "148",
+    "sort_order": 2050,
+    "draw_order": 1002050
+  },
+  {
+    "place_code": "TF",
+    "type": "sovereign",
+    "name_en": "Fr. S. Antarctic Lands",
+    "name_ja": "Fr. S. Antarctic Lands",
+    "is_active": true,
+    "geometry_id": "260",
+    "sort_order": 2060,
+    "draw_order": 1002060
+  },
+  {
+    "place_code": "TG",
+    "type": "sovereign",
+    "name_en": "Togo",
+    "name_ja": "Togo",
+    "is_active": true,
+    "geometry_id": "768",
+    "sort_order": 2070,
+    "draw_order": 1002070
+  },
+  {
+    "place_code": "TH",
+    "type": "sovereign",
+    "name_en": "Thailand",
+    "name_ja": "Thailand",
+    "is_active": true,
+    "geometry_id": "764",
+    "sort_order": 2080,
+    "draw_order": 1002080
+  },
+  {
+    "place_code": "TJ",
+    "type": "sovereign",
+    "name_en": "Tajikistan",
+    "name_ja": "Tajikistan",
+    "is_active": true,
+    "geometry_id": "762",
+    "sort_order": 2090,
+    "draw_order": 1002090
+  },
+  {
+    "place_code": "TL",
+    "type": "sovereign",
+    "name_en": "Timor-Leste",
+    "name_ja": "Timor-Leste",
+    "is_active": true,
+    "geometry_id": "626",
+    "sort_order": 2100,
+    "draw_order": 1002100
+  },
+  {
+    "place_code": "TM",
+    "type": "sovereign",
+    "name_en": "Turkmenistan",
+    "name_ja": "Turkmenistan",
+    "is_active": true,
+    "geometry_id": "795",
+    "sort_order": 2110,
+    "draw_order": 1002110
+  },
+  {
+    "place_code": "TN",
+    "type": "sovereign",
+    "name_en": "Tunisia",
+    "name_ja": "Tunisia",
+    "is_active": true,
+    "geometry_id": "788",
+    "sort_order": 2120,
+    "draw_order": 1002120
+  },
+  {
+    "place_code": "TO",
+    "type": "sovereign",
+    "name_en": "Tonga",
+    "name_ja": "Tonga",
+    "is_active": true,
+    "geometry_id": "776",
+    "sort_order": 2130,
+    "draw_order": 1002130
+  },
+  {
+    "place_code": "TR",
+    "type": "sovereign",
+    "name_en": "Turkey",
+    "name_ja": "Turkey",
+    "is_active": true,
+    "geometry_id": "792",
+    "sort_order": 2140,
+    "draw_order": 1002140
+  },
+  {
+    "place_code": "TT",
+    "type": "sovereign",
+    "name_en": "Trinidad and Tobago",
+    "name_ja": "Trinidad and Tobago",
+    "is_active": true,
+    "geometry_id": "780",
+    "sort_order": 2150,
+    "draw_order": 1002150
+  },
+  {
+    "place_code": "TW",
+    "type": "territory",
+    "name_en": "Taiwan",
+    "name_ja": "Taiwan",
+    "is_active": true,
+    "geometry_id": "158",
+    "sort_order": 2160,
+    "draw_order": 2002160
+  },
+  {
+    "place_code": "TZ",
+    "type": "sovereign",
+    "name_en": "Tanzania",
+    "name_ja": "Tanzania",
+    "is_active": true,
+    "geometry_id": "834",
+    "sort_order": 2170,
+    "draw_order": 1002170
+  },
+  {
+    "place_code": "UA",
+    "type": "sovereign",
+    "name_en": "Ukraine",
+    "name_ja": "Ukraine",
+    "is_active": true,
+    "geometry_id": "804",
+    "sort_order": 2180,
+    "draw_order": 1002180
+  },
+  {
+    "place_code": "UG",
+    "type": "sovereign",
+    "name_en": "Uganda",
+    "name_ja": "Uganda",
+    "is_active": true,
+    "geometry_id": "800",
+    "sort_order": 2190,
+    "draw_order": 1002190
+  },
+  {
+    "place_code": "US",
+    "type": "sovereign",
+    "name_en": "United States of America",
+    "name_ja": "United States of America",
+    "is_active": true,
+    "geometry_id": "840",
+    "sort_order": 2200,
+    "draw_order": 1002200
+  },
+  {
+    "place_code": "UY",
+    "type": "sovereign",
+    "name_en": "Uruguay",
+    "name_ja": "Uruguay",
+    "is_active": true,
+    "geometry_id": "858",
+    "sort_order": 2210,
+    "draw_order": 1002210
+  },
+  {
+    "place_code": "UZ",
+    "type": "sovereign",
+    "name_en": "Uzbekistan",
+    "name_ja": "Uzbekistan",
+    "is_active": true,
+    "geometry_id": "860",
+    "sort_order": 2220,
+    "draw_order": 1002220
+  },
+  {
+    "place_code": "VA",
+    "type": "sovereign",
+    "name_en": "Vatican",
+    "name_ja": "Vatican",
+    "is_active": true,
+    "geometry_id": "336",
+    "sort_order": 2230,
+    "draw_order": 1002230
+  },
+  {
+    "place_code": "VC",
+    "type": "sovereign",
+    "name_en": "St. Vin. and Gren.",
+    "name_ja": "St. Vin. and Gren.",
+    "is_active": true,
+    "geometry_id": "670",
+    "sort_order": 2240,
+    "draw_order": 1002240
+  },
+  {
+    "place_code": "VE",
+    "type": "sovereign",
+    "name_en": "Venezuela",
+    "name_ja": "Venezuela",
+    "is_active": true,
+    "geometry_id": "862",
+    "sort_order": 2250,
+    "draw_order": 1002250
+  },
+  {
+    "place_code": "VG",
+    "type": "sovereign",
+    "name_en": "British Virgin Is.",
+    "name_ja": "British Virgin Is.",
+    "is_active": true,
+    "geometry_id": "092",
+    "sort_order": 2260,
+    "draw_order": 1002260
+  },
+  {
+    "place_code": "VI",
+    "type": "sovereign",
+    "name_en": "U.S. Virgin Is.",
+    "name_ja": "U.S. Virgin Is.",
+    "is_active": true,
+    "geometry_id": "850",
+    "sort_order": 2270,
+    "draw_order": 1002270
+  },
+  {
+    "place_code": "VN",
+    "type": "sovereign",
+    "name_en": "Vietnam",
+    "name_ja": "Vietnam",
+    "is_active": true,
+    "geometry_id": "704",
+    "sort_order": 2280,
+    "draw_order": 1002280
+  },
+  {
+    "place_code": "VU",
+    "type": "sovereign",
+    "name_en": "Vanuatu",
+    "name_ja": "Vanuatu",
+    "is_active": true,
+    "geometry_id": "548",
+    "sort_order": 2290,
+    "draw_order": 1002290
+  },
+  {
+    "place_code": "WF",
+    "type": "sovereign",
+    "name_en": "Wallis and Futuna Is.",
+    "name_ja": "Wallis and Futuna Is.",
+    "is_active": true,
+    "geometry_id": "876",
+    "sort_order": 2300,
+    "draw_order": 1002300
+  },
+  {
+    "place_code": "WS",
+    "type": "sovereign",
+    "name_en": "Samoa",
+    "name_ja": "Samoa",
+    "is_active": true,
+    "geometry_id": "882",
+    "sort_order": 2310,
+    "draw_order": 1002310
+  },
+  {
+    "place_code": "XK",
+    "type": "territory",
+    "name_en": "Kosovo",
+    "name_ja": "Kosovo",
+    "is_active": true,
+    "geometry_id": "XK",
+    "sort_order": 2320,
+    "draw_order": 2002320
+  },
+  {
+    "place_code": "YE",
+    "type": "sovereign",
+    "name_en": "Yemen",
+    "name_ja": "Yemen",
+    "is_active": true,
+    "geometry_id": "887",
+    "sort_order": 2330,
+    "draw_order": 1002330
+  },
+  {
+    "place_code": "ZA",
+    "type": "sovereign",
+    "name_en": "South Africa",
+    "name_ja": "South Africa",
+    "is_active": true,
+    "geometry_id": "710",
+    "sort_order": 2340,
+    "draw_order": 1002340
+  },
+  {
+    "place_code": "ZM",
+    "type": "sovereign",
+    "name_en": "Zambia",
+    "name_ja": "Zambia",
+    "is_active": true,
+    "geometry_id": "894",
+    "sort_order": 2350,
+    "draw_order": 1002350
+  },
+  {
+    "place_code": "ZW",
+    "type": "sovereign",
+    "name_en": "Zimbabwe",
+    "name_ja": "Zimbabwe",
+    "is_active": true,
+    "geometry_id": "716",
+    "sort_order": 2360,
+    "draw_order": 1002360
+  },
+  {
+    "place_code": "XNC",
+    "type": "special",
+    "name_en": "Keikoku",
+    "name_ja": "Keikoku",
+    "is_active": false,
+    "geometry_id": "XNC",
+    "sort_order": 2370,
+    "draw_order": 3002370
+  }
 ]
