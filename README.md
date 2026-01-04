@@ -23,12 +23,14 @@ Keikoku (world visit) MVP の Flutter クライアントです。すべての地
 
 ## Map
 
-- Map 画面は Mapbox 依存を持たない CustomPainter 製の平面 Web Mercator マップです。`assets/places/places.geojson.gz` を gzip 展開して描画し、place_stats.max_level で色分けします。
+- Map 画面は Mapbox 依存を持たない CustomPainter 製の平面 Web Mercator マップです。`assets/map/countries_50m.geojson.gz` を gzip 展開し、`geometry_id` → `place_code` のマッピングを通じて place_stats.max_level で色分けします。
+- Geometry は Natural Earth / world-atlas (TopoJSON) をビルド時に前処理しており、Kosovo など id 未付与の地域には `XK` を割り当てています。
 - Globe トグルは MVP では「Under construction」を表示し、将来の球面実装のプレースホルダーとして扱います。
 
 ## データソース
 
-- `assets/places/*.json` と `assets/places/places.geojson.gz` は repo に同梱された最小データセットです。`place_code` を唯一キーとして DB/GeoJSON/JSON 間で一致させています。
+- `assets/places/*.json` は repo に同梱された Place マスタデータです。`place_code` (ISO alpha-2 + XK/XNC) をアプリ内部IDとして統一しています。
+- 地図ポリゴンは Natural Earth ベースの world-atlas TopoJSON (`tool/map/build_assets.mjs`) を変換し、`geometry_id` (ISO numeric + XK) を Feature.id として扱います。`geometry_id`→`place_code` を突き合わせることで HK/MO/PR/TW/PS/EH/XK を独立の塗り分け対象にしています。
 - 境界線・地理情報は便宜的に簡略化されており、行政境界の厳密さは保証しません。今後のアップデートで順次精緻化していきます。
 
 ## Stats 画面

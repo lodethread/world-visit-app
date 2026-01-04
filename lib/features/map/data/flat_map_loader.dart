@@ -6,15 +6,15 @@ import 'package:flutter/services.dart';
 
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 
-class PlacePolygon {
-  factory PlacePolygon({
-    required String placeCode,
+class MapPolygon {
+  factory MapPolygon({
+    required String geometryId,
     required double drawOrder,
     required List<List<Offset>> rings,
   }) {
     final normalized = _normalizeRings(rings);
-    return PlacePolygon._internal(
-      placeCode: placeCode,
+    return MapPolygon._internal(
+      geometryId: geometryId,
       drawOrder: drawOrder,
       rings: normalized.map((e) => e.points).toList(),
       ringBounds: normalized.map((e) => e.bounds).toList(),
@@ -22,15 +22,15 @@ class PlacePolygon {
     );
   }
 
-  const PlacePolygon._internal({
-    required this.placeCode,
+  const MapPolygon._internal({
+    required this.geometryId,
     required this.drawOrder,
     required this.rings,
     required this.ringBounds,
     required this.bounds,
   });
 
-  final String placeCode;
+  final String geometryId;
   final double drawOrder;
   final List<List<Offset>> rings;
   final List<Rect> ringBounds;
@@ -110,9 +110,9 @@ class FlatMapLoader {
   FlatMapLoader({AssetBundle? bundle}) : _bundle = bundle ?? rootBundle;
 
   final AssetBundle _bundle;
-  static const String _assetPath = 'assets/places/places.geojson.gz';
+  static const String _assetPath = 'assets/map/countries_50m.geojson.gz';
 
-  Future<List<PlacePolygon>> load() async {
+  Future<List<MapPolygon>> load() async {
     final data = await _bundle.load(_assetPath);
     final Uint8List bytes = data.buffer.asUint8List(
       data.offsetInBytes,
@@ -121,11 +121,11 @@ class FlatMapLoader {
     final decoded = utf8.decode(GZipCodec().decode(bytes));
     final json = jsonDecode(decoded) as Map<String, dynamic>;
     final features = (json['features'] as List).cast<Map<String, dynamic>>();
-    final polygons = <PlacePolygon>[];
+    final polygons = <MapPolygon>[];
     for (final feature in features) {
       final props = (feature['properties'] as Map?) ?? {};
-      final placeCode = (feature['id'] ?? props['place_code'])?.toString();
-      if (placeCode == null) continue;
+      final geometryId = (feature['id'] ?? props['geometry_id'])?.toString();
+      if (geometryId == null || geometryId.isEmpty) continue;
       final drawOrder = (props['draw_order'] as num?)?.toDouble() ?? 0;
       final geometry = feature['geometry'] as Map<String, dynamic>?;
       if (geometry == null) continue;
@@ -135,8 +135,8 @@ class FlatMapLoader {
         final rings = _convertPolygon(coords as List);
         if (rings.isEmpty) continue;
         polygons.add(
-          PlacePolygon(
-            placeCode: placeCode,
+          MapPolygon(
+            geometryId: geometryId,
             drawOrder: drawOrder,
             rings: rings,
           ),
@@ -146,8 +146,8 @@ class FlatMapLoader {
           final rings = _convertPolygon(polygon as List);
           if (rings.isEmpty) continue;
           polygons.add(
-            PlacePolygon(
-              placeCode: placeCode,
+            MapPolygon(
+              geometryId: geometryId,
               drawOrder: drawOrder,
               rings: rings,
             ),

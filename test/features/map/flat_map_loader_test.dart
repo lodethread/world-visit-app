@@ -15,8 +15,8 @@ void main() {
       'features': [
         {
           'type': 'Feature',
-          'id': 'JP',
-          'properties': {'place_code': 'JP', 'draw_order': 400},
+          'id': '392',
+          'properties': {'draw_order': 400},
           'geometry': {
             'type': 'Polygon',
             'coordinates': [
@@ -34,7 +34,7 @@ void main() {
     });
     final zipped = GZipCodec().encode(utf8.encode(geojson));
     final bundle = _FakeBundle({
-      'assets/places/places.geojson.gz': ByteData.view(
+      'assets/map/countries_50m.geojson.gz': ByteData.view(
         Uint8List.fromList(zipped).buffer,
       ),
     });
@@ -42,7 +42,7 @@ void main() {
     final loader = FlatMapLoader(bundle: bundle);
     final polygons = await loader.load();
     expect(polygons, hasLength(1));
-    expect(polygons.first.placeCode, 'JP');
+    expect(polygons.first.geometryId, '392');
     expect(polygons.first.drawOrder, 400);
     expect(polygons.first.rings.single, isNotEmpty);
   });
