@@ -43,7 +43,9 @@ void main() {
   test('actual assets load world data with required territories', () async {
     final master = File('assets/places/place_master.json').readAsStringSync();
     final aliases = File('assets/places/place_aliases.json').readAsStringSync();
-    final meta = File('assets/places/place_master_meta.json').readAsStringSync();
+    final meta = File(
+      'assets/places/place_master_meta.json',
+    ).readAsStringSync();
     final bundle = _FakeBundle({
       'assets/places/place_master.json': master,
       'assets/places/place_aliases.json': aliases,
