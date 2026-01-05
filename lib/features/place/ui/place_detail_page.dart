@@ -68,9 +68,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
 
   @override
   void dispose() {
-    if (_ownsDb) {
-      _db?.close();
-    }
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 

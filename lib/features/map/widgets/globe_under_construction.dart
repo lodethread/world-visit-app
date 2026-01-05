@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class GlobeUnderConstruction extends StatelessWidget {
-  const GlobeUnderConstruction({super.key, required this.onExit});
+class FlatMapUnderConstruction extends StatelessWidget {
+  const FlatMapUnderConstruction({super.key, required this.onExit});
 
   final VoidCallback onExit;
 
@@ -14,24 +14,23 @@ class GlobeUnderConstruction extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.public, size: 72, color: Colors.grey),
+            const Icon(Icons.map, size: 72, color: Colors.grey),
             const SizedBox(height: 16),
             Text(
-              'Globe (Under construction)',
+              'Flat Map (Under construction)',
               style: textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             const Text(
-              '現在は平面のみを提供しています。Globe投影は将来対応予定で、'
-              'データの準備は完了しています。',
+              '平面地図は現在調整中です。Globe表示をご利用ください。',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: onExit,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('戻る'),
+              icon: const Icon(Icons.public),
+              label: const Text('Globeに切替'),
             ),
           ],
         ),

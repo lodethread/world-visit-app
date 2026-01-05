@@ -11,15 +11,15 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: GlobeUnderConstruction(onExit: () => tapped = true),
+          body: FlatMapUnderConstruction(onExit: () => tapped = true),
         ),
       ),
     );
 
-    expect(find.text('Globe (Under construction)'), findsOneWidget);
-    expect(find.textContaining('平面のみ'), findsOneWidget);
+    expect(find.text('Flat Map (Under construction)'), findsOneWidget);
+    expect(find.textContaining('平面地図は現在調整中'), findsOneWidget);
 
-    await tester.tap(find.text('戻る'));
+    await tester.tap(find.text('Globeに切替'));
     await tester.pumpAndSettle();
     expect(tapped, isTrue);
   });

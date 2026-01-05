@@ -103,7 +103,7 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   @override
   void dispose() {
     _controller.dispose();
-    _db?.close();
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 

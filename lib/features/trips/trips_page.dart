@@ -1,7 +1,8 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
 import 'package:sqflite/sqflite.dart';
-
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/user_setting_repository.dart';
@@ -11,6 +12,20 @@ import 'package:world_visit_app/features/trips/data/trip_list_loader.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 import 'package:world_visit_app/features/trips/trip_sort.dart';
 import 'package:world_visit_app/util/normalize.dart';
+
+// #region agent log
+void _debugLogTrips(String location, String message, Map<String, dynamic> data, String hypothesisId) {
+  final entry = jsonEncode({
+    'location': location,
+    'message': message,
+    'data': data,
+    'hypothesisId': hypothesisId,
+    'timestamp': DateTime.now().millisecondsSinceEpoch,
+    'sessionId': 'debug-session',
+  });
+  debugPrint('[DEBUG] $entry');
+}
+// #endregion
 
 class TripsPage extends StatefulWidget {
   const TripsPage({super.key, this.openDatabase});
@@ -35,6 +50,11 @@ class _TripsPageState extends State<TripsPage> {
   final Set<int> _levelFilters = {};
   final Set<String> _tagFilters = {};
   TripSortOption _sortOption = TripSortOption.recent;
+  
+  // Stats for summary card
+  int _totalScore = 0;
+  Map<int, int> _levelCounts = {}; // level -> count of places at that level
+  List<_TopVisitedPlace> _topVisitedPlaces = [];
 
   @override
   void initState() {
@@ -61,6 +81,48 @@ class _TripsPageState extends State<TripsPage> {
         .map((item) => _TripView.fromItem(item))
         .toList(growable: false);
 
+    // Calculate stats
+    final statsRows = await db.query('place_stats');
+    int totalScore = 0;
+    final levelCounts = <int, int>{};
+    for (final row in statsRows) {
+      final level = (row['max_level'] as int?) ?? 0;
+      totalScore += level;
+      if (level > 0) {
+        levelCounts[level] = (levelCounts[level] ?? 0) + 1;
+      }
+    }
+
+    // Get top visited places by visit_count
+    final topPlacesRows = await db.rawQuery('''
+      SELECT ps.place_code, ps.visit_count, p.name_ja, p.name_en
+      FROM place_stats ps
+      JOIN place p ON ps.place_code = p.place_code
+      WHERE ps.visit_count > 0
+      ORDER BY ps.visit_count DESC
+      LIMIT 10
+    ''');
+    
+    final topPlaces = <_TopVisitedPlace>[];
+    if (topPlacesRows.isNotEmpty) {
+      final maxCount = topPlacesRows.first['visit_count'] as int;
+      for (final row in topPlacesRows) {
+        final count = row['visit_count'] as int;
+        if (count == maxCount) {
+          topPlaces.add(_TopVisitedPlace(
+            placeCode: row['place_code'] as String,
+            visitCount: count,
+            nameJa: row['name_ja'] as String?,
+            nameEn: row['name_en'] as String?,
+          ));
+        } else {
+          break;
+        }
+      }
+    }
+    // Shuffle to pick random one if tied
+    topPlaces.shuffle();
+
     final sortedTrips = _sortedCopy(trips, sortPreference);
     final filteredTrips = _filterTrips(sortedTrips);
 
@@ -68,6 +130,9 @@ class _TripsPageState extends State<TripsPage> {
       _sortOption = sortPreference;
       _trips = sortedTrips;
       _filtered = filteredTrips;
+      _totalScore = totalScore;
+      _levelCounts = levelCounts;
+      _topVisitedPlaces = topPlaces;
       _loading = false;
     });
   }
@@ -75,7 +140,7 @@ class _TripsPageState extends State<TripsPage> {
   @override
   void dispose() {
     _searchController.dispose();
-    _db?.close();
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 
@@ -119,6 +184,13 @@ class _TripsPageState extends State<TripsPage> {
     int? initialLevel,
     String? initialNote,
   }) async {
+    // #region agent log
+    _debugLogTrips('trips_page.dart:_openEditor', 'Opening editor', {
+      'hasVisit': visit != null,
+      'initialPlaceCode': initialPlaceCode,
+      'loading': _loading,
+    }, 'E');
+    // #endregion
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => VisitEditorPage(
@@ -131,6 +203,12 @@ class _TripsPageState extends State<TripsPage> {
         ),
       ),
     );
+    // #region agent log
+    _debugLogTrips('trips_page.dart:_openEditor:result', 'Editor returned', {
+      'result': result,
+      'mounted': mounted,
+    }, 'E');
+    // #endregion
     if (!mounted) return;
     if (result == true) {
       setState(() => _loading = true);
@@ -194,6 +272,195 @@ class _TripsPageState extends State<TripsPage> {
     }
   }
 
+  Widget _buildStatsCard() {
+    final topPlace = _topVisitedPlaces.isNotEmpty ? _topVisitedPlaces.first : null;
+    final tiedCount = _topVisitedPlaces.length;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left side: Total score
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '経国値',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$_totalScore',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Divider
+          Container(
+            width: 1,
+            height: 50,
+            color: Theme.of(context).dividerColor,
+          ),
+          const SizedBox(width: 16),
+          // Right side: Most visited place
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '最も訪問した国',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+                const SizedBox(height: 4),
+                if (topPlace != null) ...[
+                  Row(
+                    children: [
+                      Text(
+                        _countryCodeToFlag(topPlace.placeCode),
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              topPlace.nameJa ?? topPlace.nameEn ?? topPlace.placeCode,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${topPlace.visitCount}回${tiedCount > 1 ? ' (他${tiedCount - 1}国/地域)' : ''}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else
+                  Text(
+                    'まだ訪問記録がありません',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Converts ISO 3166-1 alpha-2 country code to flag emoji
+  String _countryCodeToFlag(String countryCode) {
+    if (countryCode.length != 2) return '🏳️';
+    final upper = countryCode.toUpperCase();
+    final flag = String.fromCharCodes(
+      upper.codeUnits.map((c) => c - 0x41 + 0x1F1E6),
+    );
+    return flag;
+  }
+
+  Widget _buildLevelLegend() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Level',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var level = 5; level >= 1; level--)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _colorForLevel(level),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Lv.$level',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_levelCounts[level] ?? 0}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Returns color for a given level (matches map colors)
+  Color _colorForLevel(int level) {
+    switch (level) {
+      case 1:
+        return const Color(0xFF90CAF9); // Light Blue
+      case 2:
+        return const Color(0xFF81C784); // Light Green
+      case 3:
+        return const Color(0xFFFFD54F); // Amber
+      case 4:
+        return const Color(0xFFFFB74D); // Orange
+      case 5:
+        return const Color(0xFFE57373); // Red
+      default:
+        return const Color(0xFF424242); // Grey (unvisited)
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -229,95 +496,121 @@ class _TripsPageState extends State<TripsPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: 'タイトル / Place / タグを検索',
-                      prefixIcon: Icon(Icons.search),
-                    ),
-                    onChanged: (_) => _applyFilters(),
-                  ),
-                ),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    children: [
-                      for (var level = 1; level <= 5; level++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: FilterChip(
-                            label: Text('Lv.$level'),
-                            selected: _levelFilters.contains(level),
-                            onSelected: (value) {
-                              setState(() {
-                                if (value) {
-                                  _levelFilters.add(level);
-                                } else {
-                                  _levelFilters.remove(level);
-                                }
-                                _applyFilters();
-                              });
-                            },
-                          ),
+                Column(
+                  children: [
+                    // Stats summary card
+                    _buildStatsCard(),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'タイトル / Place / タグを検索',
+                          prefixIcon: Icon(Icons.search),
                         ),
-                      const SizedBox(width: 8),
-                      FilterChip(
-                        label: Text(
-                          _tagFilters.isEmpty
-                              ? 'タグ未選択'
-                              : 'タグ ${_tagFilters.length}件',
-                        ),
-                        selected: _tagFilters.isNotEmpty,
-                        onSelected: (_) => _pickFilterTags(),
+                        onChanged: (_) => _applyFilters(),
                       ),
-                    ],
-                  ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                        children: [
+                          for (var level = 1; level <= 5; level++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: FilterChip(
+                                label: Text('Lv.$level'),
+                                selected: _levelFilters.contains(level),
+                                onSelected: (value) {
+                                  setState(() {
+                                    if (value) {
+                                      _levelFilters.add(level);
+                                    } else {
+                                      _levelFilters.remove(level);
+                                    }
+                                    _applyFilters();
+                                  });
+                                },
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: Text(
+                              _tagFilters.isEmpty
+                                  ? 'タグ未選択'
+                                  : 'タグ ${_tagFilters.length}件',
+                            ),
+                            selected: _tagFilters.isNotEmpty,
+                            onSelected: (_) => _pickFilterTags(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _filtered.isEmpty
+                          ? const Center(child: Text('Visitがありません'))
+                          : ListView.separated(
+                              itemCount: _filtered.length,
+                              separatorBuilder: (context, _) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final trip = _filtered[index];
+                                return ListTile(
+                                  title: Text(trip.visit.title),
+                                  subtitle: Text(
+                                    trip.placeLabel ?? trip.visit.placeCode,
+                                  ),
+                                  trailing: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Lv.${trip.visit.level}'),
+                                      if (trip.visit.startDate != null)
+                                        Text(
+                                          trip.visit.endDate == null
+                                              ? trip.visit.startDate!
+                                              : '${trip.visit.startDate} - ${trip.visit.endDate}',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodySmall,
+                                        ),
+                                    ],
+                                  ),
+                                  onTap: () => _openEditor(visit: trip),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: _filtered.isEmpty
-                      ? const Center(child: Text('Visitがありません'))
-                      : ListView.separated(
-                          itemCount: _filtered.length,
-                          separatorBuilder: (context, _) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final trip = _filtered[index];
-                            return ListTile(
-                              title: Text(trip.visit.title),
-                              subtitle: Text(
-                                trip.placeLabel ?? trip.visit.placeCode,
-                              ),
-                              trailing: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('Lv.${trip.visit.level}'),
-                                  if (trip.visit.startDate != null)
-                                    Text(
-                                      trip.visit.endDate == null
-                                          ? trip.visit.startDate!
-                                          : '${trip.visit.startDate} - ${trip.visit.endDate}',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                ],
-                              ),
-                              onTap: () => _openEditor(visit: trip),
-                            );
-                          },
-                        ),
+                // Level legend at bottom right
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: _buildLevelLegend(),
                 ),
               ],
             ),
     );
   }
+}
+
+class _TopVisitedPlace {
+  _TopVisitedPlace({
+    required this.placeCode,
+    required this.visitCount,
+    this.nameJa,
+    this.nameEn,
+  });
+
+  final String placeCode;
+  final int visitCount;
+  final String? nameJa;
+  final String? nameEn;
 }
 
 class _TripView implements TripSortable {
