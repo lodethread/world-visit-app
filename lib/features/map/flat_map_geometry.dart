@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+const double _kWebMercatorMaxLatitude = 85.05112878;
+
 class GeoBounds {
   const GeoBounds({
     required this.minLon,
@@ -57,11 +59,12 @@ class WebMercatorProjection {
 
   Offset project(double lon, double lat) {
     final x = (lon + 180.0) / 360.0;
-    final clampedLat = lat.clamp(-85.0511, 85.0511).toDouble();
-    final rad = clampedLat * math.pi / 180.0;
-    final y =
-        0.5 -
-        math.log((1 + math.sin(rad)) / (1 - math.sin(rad))) / (4 * math.pi);
+    final clampedLat = lat
+        .clamp(-_kWebMercatorMaxLatitude, _kWebMercatorMaxLatitude)
+        .toDouble();
+    final radians = clampedLat * math.pi / 180.0;
+    final sinPhi = math.sin(radians);
+    final y = 0.5 - math.log((1 + sinPhi) / (1 - sinPhi)) / (4 * math.pi);
     return Offset(x, y);
   }
 

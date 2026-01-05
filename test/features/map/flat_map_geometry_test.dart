@@ -30,4 +30,18 @@ void main() {
       expect(restored.dy, closeTo(point.dy, 1e-6));
     }
   });
+
+  test('WebMercator projection centers equator and clamps latitude', () {
+    const projection = WebMercatorProjection();
+    final equator = projection.project(0, 0);
+    expect(equator.dx, closeTo(0.5, 1e-9));
+    expect(equator.dy, closeTo(0.5, 1e-9));
+
+    final clampedNorth = projection.project(0, 90);
+    final clampedSouth = projection.project(0, -90);
+    final maxNorth = projection.project(0, 85.05112878);
+    final maxSouth = projection.project(0, -85.05112878);
+    expect(clampedNorth.dy, closeTo(maxNorth.dy, 1e-9));
+    expect(clampedSouth.dy, closeTo(maxSouth.dy, 1e-9));
+  });
 }
