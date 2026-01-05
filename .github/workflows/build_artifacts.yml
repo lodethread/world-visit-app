@@ -1,0 +1,65 @@
+name: Build artifacts (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      android_build:
+        description: "Build Android APK"
+        type: boolean
+        required: true
+        default: true
+      build_mode:
+        description: "Android build mode"
+        type: choice
+        required: true
+        default: debug
+        options:
+          - debug
+          - release
+
+jobs:
+  android:
+    if: ${{ inputs.android_build }}
+    runs-on: ubuntu-latest
+    env:
+      JAVA_TOOL_OPTIONS: -Djava.net.preferIPv4Stack=true
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Gradle repo fallback
+        run: |
+          mkdir -p ~/.gradle/init.d
+          cp tool/gradle/init/force_repo1.gradle ~/.gradle/init.d/force_repo1.gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          yes | sdkmanager --licenses
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --${{ inputs.build_mode }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ inputs.build_mode }}-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 14
