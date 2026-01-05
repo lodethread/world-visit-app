@@ -3,14 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
+import 'package:world_visit_app/features/map/map_viewport_constraints.dart';
 import 'package:world_visit_app/features/map/widgets/globe_under_construction.dart';
+import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
 import 'package:world_visit_app/features/map/widgets/map_legend_overlay.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
@@ -24,12 +25,15 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
+  static const double _worldSize = 4096.0;
   bool _isGlobe = false;
   bool _loading = true;
   final FlatMapLoader _mapLoader = FlatMapLoader();
   final TransformationController _transformationController =
       TransformationController();
   final WebMercatorProjection _projection = const WebMercatorProjection();
+  final MapViewportConstraints _viewportConstraints =
+      const MapViewportConstraints(worldSize: _worldSize);
   final MapLodResolver _lodResolver = const MapLodResolver();
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
@@ -47,6 +51,8 @@ class _MapPageState extends State<MapPage> {
   Future<FlatMapDataset>? _loadingFineDataset;
   int _totalScore = 0;
   Size? _viewportSize;
+  double? _minScale;
+  bool _isApplyingViewportTransform = false;
   Database? _db;
   VisitRepository? _visitRepository;
   TagRepository? _tagRepository;
@@ -169,11 +175,19 @@ class _MapPageState extends State<MapPage> {
   }
 
   double? _estimateLonSpan() {
+    final viewport = _viewportSize;
+    if (viewport == null || viewport.isEmpty) {
+      return null;
+    }
     final scale = _transformationController.value.getMaxScaleOnAxis();
     if (scale <= 0) {
       return null;
     }
-    return 360.0 / scale;
+    final visibleFraction = (viewport.width / (_worldSize * scale)).clamp(
+      0.0,
+      1.0,
+    );
+    return 360.0 * visibleFraction;
   }
 
   Future<void> _ensureFineDatasetLoaded() async {
@@ -210,7 +224,82 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  void _updateViewportSize(Size size) {
+    if (size.isEmpty) {
+      return;
+    }
+    final coverScale = _viewportConstraints.coverScale(size);
+    final previousScale = _minScale;
+    _viewportSize = size;
+    _minScale = coverScale;
+    if (previousScale == null || (previousScale - coverScale).abs() > 1e-6) {
+      _applyInitialTransform();
+    } else {
+      _enforceViewportConstraints();
+    }
+  }
+
+  void _applyInitialTransform() {
+    final viewport = _viewportSize;
+    final minScale = _minScale;
+    if (viewport == null || minScale == null) {
+      return;
+    }
+    final translation = _viewportConstraints.centeredTranslation(
+      viewport: viewport,
+      scale: minScale,
+    );
+    _applyTransform(
+      MapViewportTransform(scale: minScale, translation: translation),
+    );
+  }
+
+  bool _enforceViewportConstraints() {
+    final viewport = _viewportSize;
+    if (viewport == null) {
+      return false;
+    }
+    final matrix = _transformationController.value;
+    final scale = matrix.getMaxScaleOnAxis();
+    final translation = Offset(matrix.storage[12], matrix.storage[13]);
+    final target = _viewportConstraints.clamp(
+      viewport: viewport,
+      scale: scale,
+      translation: translation,
+    );
+    if (_nearlyEqual(target.scale, scale) &&
+        _offsetNear(target.translation, translation)) {
+      return false;
+    }
+    _applyTransform(target);
+    return true;
+  }
+
+  void _applyTransform(MapViewportTransform transform) {
+    _isApplyingViewportTransform = true;
+    final matrix = Matrix4.identity();
+    matrix.setEntry(0, 0, transform.scale);
+    matrix.setEntry(1, 1, transform.scale);
+    matrix.setEntry(2, 2, 1.0);
+    matrix.setEntry(3, 3, 1.0);
+    matrix.setTranslationRaw(
+      transform.translation.dx,
+      transform.translation.dy,
+      0,
+    );
+    _transformationController.value = matrix;
+    _isApplyingViewportTransform = false;
+  }
+
   void _handleViewportChanged() {
+    if (_isApplyingViewportTransform) {
+      return;
+    }
+    _enforceViewportConstraints();
+    _updateLodForCurrentView();
+  }
+
+  void _updateLodForCurrentView() {
     if (_dataset110m == null) {
       return;
     }
@@ -341,14 +430,10 @@ class _MapPageState extends State<MapPage> {
   }
 
   Offset? _normalizedFromLocal(Offset position) {
-    final size = _viewportSize;
-    if (size == null || size.isEmpty) {
-      return null;
-    }
     final scenePoint = _transformationController.toScene(position);
     final normalized = Offset(
-      scenePoint.dx / size.width,
-      scenePoint.dy / size.height,
+      scenePoint.dx / _worldSize,
+      scenePoint.dy / _worldSize,
     );
     if (normalized.dx.isNaN ||
         normalized.dy.isNaN ||
@@ -369,6 +454,14 @@ class _MapPageState extends State<MapPage> {
     setState(() {
       _debugCandidateCount = count;
     });
+  }
+
+  bool _nearlyEqual(double a, double b, [double epsilon = 1e-6]) {
+    return (a - b).abs() < epsilon;
+  }
+
+  bool _offsetNear(Offset a, Offset b, [double epsilon = 0.5]) {
+    return (a.dx - b.dx).abs() < epsilon && (a.dy - b.dy).abs() < epsilon;
   }
 
   Future<void> _selectPlace(
@@ -583,7 +676,7 @@ class _MapPageState extends State<MapPage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        _viewportSize = size;
+        _updateViewportSize(size);
         final painter = _FlatMapPainter(
           polygons: dataset.polygons,
           levels: _levels,
@@ -592,25 +685,25 @@ class _MapPageState extends State<MapPage> {
           selectedPlaceCode: _selectionData?.placeCode,
         );
         final canvas = SizedBox(
-          width: size.width,
-          height: size.height,
+          width: _worldSize,
+          height: _worldSize,
           child: CustomPaint(painter: painter),
         );
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: (_) => _clearSelection(),
-          onLongPressStart: (details) =>
-              _handleLongPress(details.localPosition),
-          child: InteractiveViewer(
-            transformationController: _transformationController,
-            minScale: 1.0,
-            maxScale: 12.0,
-            panEnabled: true,
-            scaleEnabled: true,
-            boundaryMargin: const EdgeInsets.all(200),
-            clipBehavior: Clip.none,
-            child: canvas,
-          ),
+        final viewer = InteractiveViewer(
+          transformationController: _transformationController,
+          minScale: _minScale ?? 1.0,
+          maxScale: 20.0,
+          panEnabled: true,
+          scaleEnabled: true,
+          boundaryMargin: EdgeInsets.zero,
+          clipBehavior: Clip.none,
+          child: canvas,
+        );
+        return MapGestureLayer(
+          enabled: !_loading && _activeDataset != null,
+          onTap: _clearSelection,
+          onLongPress: (position) => _handleLongPress(position),
+          child: SizedBox.expand(child: viewer),
         );
       },
     );
@@ -646,24 +739,26 @@ class _MapPageState extends State<MapPage> {
     return Positioned(
       bottom: 16,
       right: 16,
-      child: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              height: 1.2,
+      child: IgnorePointer(
+        child: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              'LOD: $lodLabel\n'
-              'Parsed: $_debugParsedFeatures\n'
-              'Polygons: $_debugDrawnPolygons\n'
-              'Candidates: $_debugCandidateCount',
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                height: 1.2,
+              ),
+              child: Text(
+                'LOD: $lodLabel\n'
+                'Parsed: $_debugParsedFeatures\n'
+                'Polygons: $_debugDrawnPolygons\n'
+                'Candidates: $_debugCandidateCount',
+              ),
             ),
           ),
         ),
