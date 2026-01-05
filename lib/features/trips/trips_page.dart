@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
+import 'package:world_visit_app/data/db/user_setting_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/tag/ui/tag_picker_sheet.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
@@ -18,15 +19,18 @@ class TripsPage extends StatefulWidget {
 }
 
 class _TripsPageState extends State<TripsPage> {
+  static const _kTripsSortSettingKey = 'trips_sort';
   final TextEditingController _searchController = TextEditingController();
   List<_TripView> _trips = [];
   List<_TripView> _filtered = [];
   Database? _db;
   late VisitRepository _visitRepository;
   late TagRepository _tagRepository;
+  UserSettingRepository? _userSettingRepository;
   bool _loading = true;
   final Set<int> _levelFilters = {};
   final Set<String> _tagFilters = {};
+  TripSortOption _sortOption = TripSortOption.recent;
 
   @override
   void initState() {
@@ -39,21 +43,40 @@ class _TripsPageState extends State<TripsPage> {
     _db = db;
     _visitRepository = VisitRepository(db);
     _tagRepository = TagRepository(db);
+    _userSettingRepository ??= UserSettingRepository(db);
+
+    final savedSort = await _userSettingRepository!.getValue(
+      _kTripsSortSettingKey,
+    );
+    var sortPreference = tripSortOptionFromStorage(savedSort) ?? _sortOption;
 
     final placeRows = await db.query('place');
     final aliasRows = await db.query('place_alias');
     final visitRows = await db.query('visit');
     final tagRows = await db.query('tag');
     final visitTagRows = await db.query('visit_tag');
+    final statsRows = await db.query('place_stats');
 
-    final places = {
-      for (final row in placeRows)
-        row['place_code'] as String: _PlaceInfo(
-          code: row['place_code'] as String,
-          nameJa: row['name_ja'] as String,
-          nameEn: row['name_en'] as String,
+    final statsByPlace = {
+      for (final row in statsRows)
+        row['place_code'] as String: _PlaceStats(
+          maxLevel: (row['max_level'] as int?) ?? 0,
+          visitCount: (row['visit_count'] as int?) ?? 0,
         ),
     };
+
+    final places = <String, _PlaceInfo>{};
+    for (final row in placeRows) {
+      final code = row['place_code'] as String;
+      final stats = statsByPlace[code];
+      places[code] = _PlaceInfo(
+        code: code,
+        nameJa: row['name_ja'] as String,
+        nameEn: row['name_en'] as String,
+        maxLevel: stats?.maxLevel ?? 0,
+        visitCount: stats?.visitCount ?? 0,
+      );
+    }
     final placeTokens = <String, Set<String>>{};
     for (final entry in places.entries) {
       placeTokens[entry.key] = {
@@ -103,11 +126,13 @@ class _TripsPageState extends State<TripsPage> {
       trips.add(view);
     }
 
-    trips.sort((a, b) => compareVisitRecords(a.visit, b.visit));
+    final sortedTrips = _sortedCopy(trips, sortPreference);
+    final filteredTrips = _filterTrips(sortedTrips);
 
     setState(() {
-      _trips = trips;
-      _filtered = trips;
+      _sortOption = sortPreference;
+      _trips = sortedTrips;
+      _filtered = filteredTrips;
       _loading = false;
     });
   }
@@ -120,8 +145,14 @@ class _TripsPageState extends State<TripsPage> {
   }
 
   void _applyFilters() {
+    setState(() {
+      _filtered = _filterTrips(_trips);
+    });
+  }
+
+  List<_TripView> _filterTrips(List<_TripView> source) {
     final query = normalizeText(_searchController.text);
-    final filtered = _trips.where((trip) {
+    return source.where((trip) {
       if (query.isNotEmpty && !trip.matchesQuery(query)) {
         return false;
       }
@@ -137,8 +168,12 @@ class _TripsPageState extends State<TripsPage> {
       }
       return true;
     }).toList();
-    filtered.sort((a, b) => compareVisitRecords(a.visit, b.visit));
-    setState(() => _filtered = filtered);
+  }
+
+  List<_TripView> _sortedCopy(List<_TripView> source, TripSortOption option) {
+    final copy = List<_TripView>.from(source);
+    copy.sort((a, b) => compareTrips(a, b, option));
+    return copy;
   }
 
   Future<void> _openEditor({
@@ -192,6 +227,21 @@ class _TripsPageState extends State<TripsPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _changeSortOption(TripSortOption option) async {
+    if (_sortOption == option) {
+      return;
+    }
+    setState(() {
+      _sortOption = option;
+      _trips = _sortedCopy(_trips, option);
+      _filtered = _filterTrips(_trips);
+    });
+    final repo = _userSettingRepository;
+    if (repo != null) {
+      await repo.setValue(_kTripsSortSettingKey, option.storageValue);
+    }
+  }
+
   Future<void> _pickFilterTags() async {
     final initialSelection = await _tagRepository.getByIds(_tagFilters);
     if (!mounted) return;
@@ -224,6 +274,21 @@ class _TripsPageState extends State<TripsPage> {
             onPressed: _loading ? null : _duplicateLatest,
             icon: const Icon(Icons.copy),
             tooltip: '直前Visit複製',
+          ),
+          PopupMenuButton<TripSortOption>(
+            tooltip: '並び替え',
+            enabled: !_loading,
+            initialValue: _sortOption,
+            icon: const Icon(Icons.sort),
+            onSelected: (value) => _changeSortOption(value),
+            itemBuilder: (context) {
+              return TripSortOption.values
+                  .map(
+                    (option) =>
+                        PopupMenuItem(value: option, child: Text(option.label)),
+                  )
+                  .toList();
+            },
           ),
         ],
       ),
@@ -320,7 +385,7 @@ class _TripsPageState extends State<TripsPage> {
   }
 }
 
-class _TripView {
+class _TripView implements TripSortable {
   _TripView({
     required this.visit,
     required this.place,
@@ -328,6 +393,7 @@ class _TripView {
     required this.searchTokens,
   });
 
+  @override
   final VisitRecord visit;
   final _PlaceInfo? place;
   final List<TagRecord> tags;
@@ -338,6 +404,18 @@ class _TripView {
     return place!.nameJa;
   }
 
+  @override
+  String? get placeNameJa => place?.nameJa;
+
+  @override
+  String? get placeNameEn => place?.nameEn;
+
+  @override
+  int get placeMaxLevel => place?.maxLevel ?? 0;
+
+  @override
+  int get placeVisitCount => place?.visitCount ?? 0;
+
   bool matchesQuery(String query) {
     if (searchTokens.isEmpty) {
       return normalizeText(visit.title).contains(query);
@@ -346,10 +424,25 @@ class _TripView {
   }
 }
 
+class _PlaceStats {
+  const _PlaceStats({required this.maxLevel, required this.visitCount});
+
+  final int maxLevel;
+  final int visitCount;
+}
+
 class _PlaceInfo {
-  _PlaceInfo({required this.code, required this.nameJa, required this.nameEn});
+  _PlaceInfo({
+    required this.code,
+    required this.nameJa,
+    required this.nameEn,
+    required this.maxLevel,
+    required this.visitCount,
+  });
 
   final String code;
   final String nameJa;
   final String nameEn;
+  final int maxLevel;
+  final int visitCount;
 }
