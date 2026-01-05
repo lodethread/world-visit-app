@@ -7,6 +7,7 @@ import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
+import 'package:world_visit_app/features/map/data/map_dataset_guard.dart';
 import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
 import 'package:world_visit_app/features/map/map_viewport_constraints.dart';
@@ -18,17 +19,49 @@ import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 
 class MapPage extends StatefulWidget {
-  const MapPage({super.key});
+  const MapPage({super.key, this.mapLoader, this.openDatabase});
+
+  final FlatMapLoader? mapLoader;
+  final Future<Database> Function()? openDatabase;
 
   @override
   State<MapPage> createState() => _MapPageState();
 }
 
+sealed class MapRenderState {
+  const MapRenderState();
+}
+
+class MapRenderLoading extends MapRenderState {
+  const MapRenderLoading();
+}
+
+class MapRenderReady extends MapRenderState {
+  const MapRenderReady();
+}
+
+class MapRenderError extends MapRenderState {
+  const MapRenderError({required this.message, this.details});
+
+  final String message;
+  final String? details;
+}
+
+class MapDataException implements Exception {
+  const MapDataException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class _MapPageState extends State<MapPage> {
   static const double _worldSize = 4096.0;
+  static const String _mapLoadErrorMessage = '地図データの読み込みに失敗しました';
   bool _isGlobe = false;
-  bool _loading = true;
-  final FlatMapLoader _mapLoader = FlatMapLoader();
+  late final FlatMapLoader _mapLoader;
+  late final Future<Database> Function() _openDatabase;
   final TransformationController _transformationController =
       TransformationController();
   final WebMercatorProjection _projection = const WebMercatorProjection();
@@ -49,6 +82,7 @@ class _MapPageState extends State<MapPage> {
   FlatMapDataset? _dataset50m;
   FlatMapDataset? _activeDataset;
   Future<FlatMapDataset>? _loadingFineDataset;
+  MapRenderState _renderState = const MapRenderLoading();
   int _totalScore = 0;
   Size? _viewportSize;
   double? _minScale;
@@ -64,6 +98,8 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    _mapLoader = widget.mapLoader ?? FlatMapLoader();
+    _openDatabase = widget.openDatabase ?? () => AppDatabase().open();
     _transformationController.addListener(_handleViewportChanged);
     unawaited(_loadData());
   }
@@ -78,69 +114,105 @@ class _MapPageState extends State<MapPage> {
   }
 
   Future<void> _loadData() async {
-    final dataset110m = _dataset110m ?? await _mapLoader.loadCountries110m();
-    final db = _db ?? await AppDatabase().open();
-    _db ??= db;
-    _visitRepository ??= VisitRepository(db);
-    _tagRepository ??= TagRepository(db);
-    final placeRows = await db.query('place');
-    final statsRows = await db.query('place_stats');
-    final geometryToPlace = <String, String>{};
-    final labels = <String, _PlaceLabel>{};
-    for (final row in placeRows) {
-      final placeCode = row['place_code']?.toString();
-      if (placeCode == null) {
-        continue;
+    try {
+      final dataset110m = _dataset110m ?? await _mapLoader.loadCountries110m();
+      MapDatasetGuard.ensureUsable(dataset110m, label: 'countries_110m');
+      final db = _db ?? await _openDatabase();
+      _db ??= db;
+      _visitRepository ??= VisitRepository(db);
+      _tagRepository ??= TagRepository(db);
+      final placeRows = await db.query('place');
+      final statsRows = await db.query('place_stats');
+      final geometryToPlace = <String, String>{};
+      final labels = <String, _PlaceLabel>{};
+      for (final row in placeRows) {
+        final placeCode = row['place_code']?.toString();
+        if (placeCode == null) {
+          continue;
+        }
+        labels[placeCode] = _PlaceLabel(
+          nameJa: row['name_ja'] as String,
+          nameEn: row['name_en'] as String,
+        );
+        final geometryId = row['geometry_id']?.toString();
+        if (geometryId == null || geometryId.isEmpty) {
+          continue;
+        }
+        geometryToPlace[geometryId] = placeCode;
       }
-      labels[placeCode] = _PlaceLabel(
-        nameJa: row['name_ja'] as String,
-        nameEn: row['name_en'] as String,
-      );
-      final geometryId = row['geometry_id']?.toString();
-      if (geometryId == null || geometryId.isEmpty) {
-        continue;
+      if (geometryToPlace.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('Geometry to place mapping is empty.');
+        }
+        throw const MapDataException('Placeデータの読み込みに失敗しました。');
       }
-      geometryToPlace[geometryId] = placeCode;
+      final visitCounts = <String, int>{};
+      int total = 0;
+      final levels = <String, int>{};
+      for (final row in statsRows) {
+        final level = (row['max_level'] as int?) ?? 0;
+        final placeCode = row['place_code'] as String;
+        levels[placeCode] = level;
+        visitCounts[placeCode] = (row['visit_count'] as int?) ?? 0;
+        total += level;
+      }
+      final selectedPlace = _selectionData?.placeCode;
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _dataset110m ??= dataset110m;
+        _labels
+          ..clear()
+          ..addAll(labels);
+        _levels
+          ..clear()
+          ..addAll(levels);
+        _visitCounts
+          ..clear()
+          ..addAll(visitCounts);
+        _geometryToPlace = geometryToPlace;
+        _totalScore = total;
+        _drawOrders.clear();
+        _updateDrawOrdersFromDataset(_dataset110m!);
+        final fine = _dataset50m;
+        if (fine != null) {
+          _updateDrawOrdersFromDataset(fine);
+        }
+        _refreshActiveDatasetLocked();
+        _renderState = const MapRenderReady();
+      });
+      if (_activeDataset == null) {
+        throw const MapDataException('有効な地図データを初期化できませんでした。');
+      }
+      if (_desiredLod == MapLod.fine50m) {
+        unawaited(_ensureFineDatasetLoaded());
+      }
+      if (selectedPlace != null && mounted) {
+        await _selectPlace(selectedPlace, animateSheet: false);
+      }
+    } catch (error, stackTrace) {
+      if (error is DatabaseException && error.isDatabaseClosedError()) {
+        return;
+      }
+      _handleFatalMapError(error, stackTrace);
     }
-    final visitCounts = <String, int>{};
-    int total = 0;
-    final levels = <String, int>{};
-    for (final row in statsRows) {
-      final level = (row['max_level'] as int?) ?? 0;
-      final placeCode = row['place_code'] as String;
-      levels[placeCode] = level;
-      visitCounts[placeCode] = (row['visit_count'] as int?) ?? 0;
-      total += level;
+  }
+
+  void _handleFatalMapError(Object error, StackTrace stackTrace) {
+    if (kDebugMode) {
+      debugPrint('MapPage load error: $error\n$stackTrace');
     }
-    final selectedPlace = _selectionData?.placeCode;
+    if (!mounted) {
+      return;
+    }
     setState(() {
-      _dataset110m ??= dataset110m;
-      _labels
-        ..clear()
-        ..addAll(labels);
-      _levels
-        ..clear()
-        ..addAll(levels);
-      _visitCounts
-        ..clear()
-        ..addAll(visitCounts);
-      _geometryToPlace = geometryToPlace;
-      _totalScore = total;
-      _loading = false;
-      _drawOrders.clear();
-      _updateDrawOrdersFromDataset(_dataset110m!);
-      final fine = _dataset50m;
-      if (fine != null) {
-        _updateDrawOrdersFromDataset(fine);
-      }
-      _refreshActiveDatasetLocked();
+      _renderState = MapRenderError(
+        message: _mapLoadErrorMessage,
+        details: error.toString(),
+      );
+      _activeDataset = null;
     });
-    if (_desiredLod == MapLod.fine50m) {
-      unawaited(_ensureFineDatasetLoaded());
-    }
-    if (selectedPlace != null && mounted) {
-      await _selectPlace(selectedPlace, animateSheet: false);
-    }
   }
 
   void _refreshActiveDatasetLocked() {
@@ -198,6 +270,7 @@ class _MapPageState extends State<MapPage> {
     _loadingFineDataset = future;
     try {
       final dataset = await future;
+      MapDatasetGuard.ensureUsable(dataset, label: 'countries_50m');
       if (!mounted) {
         return;
       }
@@ -207,6 +280,13 @@ class _MapPageState extends State<MapPage> {
       });
       if (_desiredLod == MapLod.fine50m) {
         _activateLod(MapLod.fine50m);
+      }
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Fine dataset load failed: $error\n$stackTrace');
+      }
+      if (mounted) {
+        _showMessage('詳細地図の読み込みに失敗しました');
       }
     } finally {
       if (identical(_loadingFineDataset, future)) {
@@ -262,6 +342,13 @@ class _MapPageState extends State<MapPage> {
     final matrix = _transformationController.value;
     final scale = matrix.getMaxScaleOnAxis();
     final translation = Offset(matrix.storage[12], matrix.storage[13]);
+    if (!_isFiniteTransform(scale, translation)) {
+      _handleFatalMapError(
+        const MapDataException('ビュー変換の計算に失敗しました。'),
+        StackTrace.current,
+      );
+      return false;
+    }
     final target = _viewportConstraints.clamp(
       viewport: viewport,
       scale: scale,
@@ -273,6 +360,19 @@ class _MapPageState extends State<MapPage> {
     }
     _applyTransform(target);
     return true;
+  }
+
+  bool _isFiniteTransform(double scale, Offset translation) {
+    return scale.isFinite && translation.dx.isFinite && translation.dy.isFinite;
+  }
+
+  void _setLoadingState() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _renderState = const MapRenderLoading();
+    });
   }
 
   void _applyTransform(MapViewportTransform transform) {
@@ -493,7 +593,7 @@ class _MapPageState extends State<MapPage> {
     if (_visitRepository != null && _tagRepository != null) {
       return;
     }
-    final db = _db ?? await AppDatabase().open();
+    final db = _db ?? await _openDatabase();
     _db ??= db;
     _visitRepository ??= VisitRepository(db);
     _tagRepository ??= TagRepository(db);
@@ -607,7 +707,7 @@ class _MapPageState extends State<MapPage> {
       ),
     );
     if (!mounted || result != true) return;
-    setState(() => _loading = true);
+    _setLoadingState();
     await _loadData();
   }
 
@@ -636,7 +736,7 @@ class _MapPageState extends State<MapPage> {
       ),
     );
     if (!mounted || result != true) return;
-    setState(() => _loading = true);
+    _setLoadingState();
     await _loadData();
   }
 
@@ -647,7 +747,7 @@ class _MapPageState extends State<MapPage> {
       MaterialPageRoute(builder: (_) => PlaceDetailPage(placeCode: placeCode)),
     );
     if (!mounted) return;
-    setState(() => _loading = true);
+    _setLoadingState();
     await _loadData();
   }
 
@@ -666,12 +766,20 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildFlatMap() {
-    if (_loading) {
+    final state = _renderState;
+    if (state is MapRenderLoading) {
       return const Center(child: CircularProgressIndicator());
     }
+    if (state is MapRenderError) {
+      return _MapErrorView(
+        message: state.message,
+        details: state.details,
+        onRetry: _retryLoad,
+      );
+    }
     final dataset = _activeDataset;
-    if (dataset == null || dataset.polygons.isEmpty) {
-      return const Center(child: Text('地図データがありません'));
+    if (dataset == null) {
+      return const Center(child: Text('地図データが初期化されていません'));
     }
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -700,13 +808,18 @@ class _MapPageState extends State<MapPage> {
           child: canvas,
         );
         return MapGestureLayer(
-          enabled: !_loading && _activeDataset != null,
+          enabled: state is MapRenderReady && _activeDataset != null,
           onTap: _clearSelection,
           onLongPress: (position) => _handleLongPress(position),
           child: SizedBox.expand(child: viewer),
         );
       },
     );
+  }
+
+  void _retryLoad() {
+    _setLoadingState();
+    unawaited(_loadData());
   }
 
   Widget _buildGlobePlaceholder() {
@@ -717,7 +830,7 @@ class _MapPageState extends State<MapPage> {
 
   Widget _buildSelectionSheet() {
     final data = _selectionData;
-    if (data == null) {
+    if (data == null || _renderState is! MapRenderReady) {
       return const SizedBox.shrink();
     }
     return MapSelectionSheet(
@@ -920,6 +1033,47 @@ class _FlatMapPainter extends CustomPainter {
         oldDelegate.levels != levels ||
         oldDelegate.geometryToPlace != geometryToPlace ||
         oldDelegate.selectedPlaceCode != selectedPlaceCode;
+  }
+}
+
+class _MapErrorView extends StatelessWidget {
+  const _MapErrorView({
+    required this.message,
+    required this.onRetry,
+    this.details,
+  });
+
+  final String message;
+  final String? details;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            if (details != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                details!,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('再読み込み')),
+          ],
+        ),
+      ),
+    );
   }
 }
 
