@@ -7,12 +7,15 @@ import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/user_setting_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/tag/ui/tag_picker_sheet.dart';
+import 'package:world_visit_app/features/trips/data/trip_list_loader.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 import 'package:world_visit_app/features/trips/trip_sort.dart';
 import 'package:world_visit_app/util/normalize.dart';
 
 class TripsPage extends StatefulWidget {
-  const TripsPage({super.key});
+  const TripsPage({super.key, this.openDatabase});
+
+  final Future<Database> Function()? openDatabase;
 
   @override
   State<TripsPage> createState() => _TripsPageState();
@@ -24,6 +27,7 @@ class _TripsPageState extends State<TripsPage> {
   List<_TripView> _trips = [];
   List<_TripView> _filtered = [];
   Database? _db;
+  Future<Database> Function()? _openDatabase;
   late VisitRepository _visitRepository;
   late TagRepository _tagRepository;
   UserSettingRepository? _userSettingRepository;
@@ -35,12 +39,13 @@ class _TripsPageState extends State<TripsPage> {
   @override
   void initState() {
     super.initState();
+    _openDatabase = widget.openDatabase ?? () => AppDatabase().open();
     _load();
   }
 
   Future<void> _load() async {
-    final db = await AppDatabase().open();
-    _db = db;
+    _db ??= await _openDatabase!.call();
+    final db = _db!;
     _visitRepository = VisitRepository(db);
     _tagRepository = TagRepository(db);
     _userSettingRepository ??= UserSettingRepository(db);
@@ -50,81 +55,11 @@ class _TripsPageState extends State<TripsPage> {
     );
     var sortPreference = tripSortOptionFromStorage(savedSort) ?? _sortOption;
 
-    final placeRows = await db.query('place');
-    final aliasRows = await db.query('place_alias');
-    final visitRows = await db.query('visit');
-    final tagRows = await db.query('tag');
-    final visitTagRows = await db.query('visit_tag');
-    final statsRows = await db.query('place_stats');
-
-    final statsByPlace = {
-      for (final row in statsRows)
-        row['place_code'] as String: _PlaceStats(
-          maxLevel: (row['max_level'] as int?) ?? 0,
-          visitCount: (row['visit_count'] as int?) ?? 0,
-        ),
-    };
-
-    final places = <String, _PlaceInfo>{};
-    for (final row in placeRows) {
-      final code = row['place_code'] as String;
-      final stats = statsByPlace[code];
-      places[code] = _PlaceInfo(
-        code: code,
-        nameJa: row['name_ja'] as String,
-        nameEn: row['name_en'] as String,
-        maxLevel: stats?.maxLevel ?? 0,
-        visitCount: stats?.visitCount ?? 0,
-      );
-    }
-    final placeTokens = <String, Set<String>>{};
-    for (final entry in places.entries) {
-      placeTokens[entry.key] = {
-        normalizeText(entry.value.nameJa),
-        normalizeText(entry.value.nameEn),
-      }..removeWhere((value) => value.isEmpty);
-    }
-    for (final row in aliasRows) {
-      final code = row['place_code'] as String;
-      placeTokens.putIfAbsent(code, () => <String>{});
-      placeTokens[code]!.add(normalizeText(row['alias'] as String));
-      placeTokens[code]!.removeWhere((element) => element.isEmpty);
-    }
-
-    final tags = {
-      for (final row in tagRows)
-        row['tag_id'] as String: TagRecord.fromMap(row),
-    };
-
-    final visitTags = <String, List<TagRecord>>{};
-    for (final row in visitTagRows) {
-      final visitId = row['visit_id'] as String;
-      final tagId = row['tag_id'] as String;
-      final tag = tags[tagId];
-      if (tag == null) continue;
-      visitTags.putIfAbsent(visitId, () => []).add(tag);
-    }
-
-    final trips = <_TripView>[];
-    for (final row in visitRows) {
-      final visit = VisitRecord.fromMap(row);
-      final place = places[visit.placeCode];
-      final view = _TripView(
-        visit: visit,
-        place: place,
-        tags: visitTags[visit.visitId] ?? const [],
-        searchTokens: {
-          normalizeText(visit.title),
-          if (place != null) normalizeText(place.nameJa),
-          if (place != null) normalizeText(place.nameEn),
-          ...?placeTokens[visit.placeCode],
-          ...((visitTags[visit.visitId] ?? const []).map(
-            (tag) => normalizeText(tag.name),
-          )),
-        }..removeWhere((token) => token.isEmpty),
-      );
-      trips.add(view);
-    }
+    final loader = TripListLoader(db);
+    final source = await loader.load();
+    final trips = source
+        .map((item) => _TripView.fromItem(item))
+        .toList(growable: false);
 
     final sortedTrips = _sortedCopy(trips, sortPreference);
     final filteredTrips = _filterTrips(sortedTrips);
@@ -393,28 +328,44 @@ class _TripView implements TripSortable {
     required this.searchTokens,
   });
 
+  factory _TripView.fromItem(TripListItem item) {
+    final tokens = <String>{
+      normalizeText(item.visit.title),
+      normalizeText(item.place.nameJa ?? ''),
+      normalizeText(item.place.nameEn ?? ''),
+      normalizeText(item.place.code),
+      ...item.place.aliases.map(normalizeText),
+      ...item.tags.map((tag) => normalizeText(tag.name)),
+    }..removeWhere((token) => token.isEmpty);
+    return _TripView(
+      visit: item.visit,
+      place: item.place,
+      tags: item.tags,
+      searchTokens: tokens,
+    );
+  }
+
   @override
   final VisitRecord visit;
-  final _PlaceInfo? place;
+  final TripPlaceInfo place;
   final List<TagRecord> tags;
   final Set<String> searchTokens;
 
   String? get placeLabel {
-    if (place == null) return null;
-    return place!.nameJa;
+    return place.nameJa ?? place.nameEn;
   }
 
   @override
-  String? get placeNameJa => place?.nameJa;
+  String? get placeNameJa => place.nameJa;
 
   @override
-  String? get placeNameEn => place?.nameEn;
+  String? get placeNameEn => place.nameEn;
 
   @override
-  int get placeMaxLevel => place?.maxLevel ?? 0;
+  int get placeMaxLevel => place.maxLevel;
 
   @override
-  int get placeVisitCount => place?.visitCount ?? 0;
+  int get placeVisitCount => place.visitCount;
 
   bool matchesQuery(String query) {
     if (searchTokens.isEmpty) {
@@ -422,27 +373,4 @@ class _TripView implements TripSortable {
     }
     return searchTokens.any((token) => token.contains(query));
   }
-}
-
-class _PlaceStats {
-  const _PlaceStats({required this.maxLevel, required this.visitCount});
-
-  final int maxLevel;
-  final int visitCount;
-}
-
-class _PlaceInfo {
-  _PlaceInfo({
-    required this.code,
-    required this.nameJa,
-    required this.nameEn,
-    required this.maxLevel,
-    required this.visitCount,
-  });
-
-  final String code;
-  final String nameJa;
-  final String nameEn;
-  final int maxLevel;
-  final int visitCount;
 }

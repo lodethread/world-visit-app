@@ -18,6 +18,13 @@ class SettingsPage extends StatelessWidget {
         children: [
           const ListTile(title: Text('General')),
           ListTile(
+            leading: const Icon(Icons.public),
+            title: const Text('Browse places'),
+            subtitle: const Text('国/地域一覧から詳細を開く'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _openPlacePicker(context),
+          ),
+          ListTile(
             leading: const Icon(Icons.insights_outlined),
             title: const Text('Stats'),
             subtitle: const Text('経国値とレベル分布'),
@@ -57,22 +64,23 @@ class SettingsPage extends StatelessWidget {
               leading: const Icon(Icons.bug_report_outlined),
               title: const Text('Pick place'),
               subtitle: const Text('Place詳細表示を確認'),
-              onTap: () async {
-                final result = await Navigator.of(context).push<String>(
-                  MaterialPageRoute(builder: (_) => const PlacePickerPage()),
-                );
-                if (result != null && context.mounted) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PlaceDetailPage(placeCode: result),
-                    ),
-                  );
-                }
-              },
+              onTap: () => _openPlacePicker(context),
             ),
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _openPlacePicker(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final result = await navigator.push<String>(
+      MaterialPageRoute(builder: (_) => const PlacePickerPage()),
+    );
+    if (result != null) {
+      await navigator.push(
+        MaterialPageRoute(builder: (_) => PlaceDetailPage(placeCode: result)),
+      );
+    }
   }
 }

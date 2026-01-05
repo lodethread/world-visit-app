@@ -94,6 +94,13 @@ class _MapPageState extends State<MapPage> {
   int _debugCandidateCount = 0;
   int _debugParsedFeatures = 0;
   int _debugDrawnPolygons = 0;
+  int _debugMappedPolygons = 0;
+  int _debugFillCount = 0;
+  int _debugOutlineOnlyCount = 0;
+  double _debugScale = 1.0;
+  Offset _debugTranslation = Offset.zero;
+  bool _hasDrawablePolygons = true;
+  _MapPaintMetrics _lastPaintMetrics = _MapPaintMetrics.zero;
 
   @override
   void initState() {
@@ -140,11 +147,10 @@ class _MapPageState extends State<MapPage> {
         }
         geometryToPlace[geometryId] = placeCode;
       }
-      if (geometryToPlace.isEmpty) {
-        if (kDebugMode) {
-          debugPrint('Geometry to place mapping is empty.');
-        }
-        throw const MapDataException('Placeデータの読み込みに失敗しました。');
+      if (geometryToPlace.isEmpty && kDebugMode) {
+        debugPrint(
+          'Geometry to place mapping is empty. Rendering outlines only.',
+        );
       }
       final visitCounts = <String, int>{};
       int total = 0;
@@ -172,6 +178,7 @@ class _MapPageState extends State<MapPage> {
           ..clear()
           ..addAll(visitCounts);
         _geometryToPlace = geometryToPlace;
+        _recomputeDrawableStatsLocked();
         _totalScore = total;
         _drawOrders.clear();
         _updateDrawOrdersFromDataset(_dataset110m!);
@@ -231,7 +238,31 @@ class _MapPageState extends State<MapPage> {
     _geometryBounds = dataset.boundsByGeometry;
     if (!kReleaseMode) {
       _debugParsedFeatures = dataset.geometries.length;
-      _debugDrawnPolygons = dataset.polygons.length;
+    }
+    _recomputeDrawableStatsLocked();
+  }
+
+  void _recomputeDrawableStatsLocked() {
+    final dataset = _activeDataset;
+    if (dataset == null) {
+      _hasDrawablePolygons = false;
+      if (!kReleaseMode) {
+        _debugMappedPolygons = 0;
+        _debugDrawnPolygons = 0;
+      }
+      return;
+    }
+    final polygons = dataset.polygons;
+    int mapped = 0;
+    for (final polygon in polygons) {
+      if (_geometryToPlace.containsKey(polygon.geometryId)) {
+        mapped++;
+      }
+    }
+    _hasDrawablePolygons = mapped > 0;
+    if (!kReleaseMode) {
+      _debugMappedPolygons = mapped;
+      _debugDrawnPolygons = polygons.length;
     }
   }
 
@@ -389,6 +420,7 @@ class _MapPageState extends State<MapPage> {
     );
     _transformationController.value = matrix;
     _isApplyingViewportTransform = false;
+    _recordViewportTransform();
   }
 
   void _handleViewportChanged() {
@@ -397,7 +429,57 @@ class _MapPageState extends State<MapPage> {
     }
     _enforceViewportConstraints();
     _updateLodForCurrentView();
+    _recordViewportTransform();
   }
+
+  void _recordViewportTransform() {
+    if (kReleaseMode || !mounted) {
+      return;
+    }
+    final matrix = _transformationController.value;
+    final scale = matrix.getMaxScaleOnAxis();
+    final translation = Offset(matrix.storage[12], matrix.storage[13]);
+    if ((_debugScale - scale).abs() < 1e-3 &&
+        (_debugTranslation - translation).distance < 0.5) {
+      return;
+    }
+    setState(() {
+      _debugScale = scale;
+      _debugTranslation = translation;
+    });
+  }
+
+  String? get _fallbackNoticeText {
+    if (_renderState is! MapRenderReady) {
+      return null;
+    }
+    final dataset = _activeDataset;
+    if (dataset == null) {
+      return '地図データを初期化できませんでした';
+    }
+    if (_geometryToPlace.isEmpty || !_hasDrawablePolygons) {
+      return 'Placeデータとの対応がみつからず、境界線のみ表示しています';
+    }
+    final metrics = _lastPaintMetrics;
+    if (metrics.totalPolygons == 0) {
+      return null;
+    }
+    if (metrics.filledPolygons == 0 &&
+        metrics.outlineOnlyPolygons > 0 &&
+        metrics.totalPolygons >= dataset.polygons.length ~/ 2) {
+      return '塗り分けに必要なPlace情報を再同期してください';
+    }
+    return null;
+  }
+
+  @visibleForTesting
+  bool get isFallbackActive => _fallbackNoticeText != null;
+
+  @visibleForTesting
+  MapRenderState get debugRenderState => _renderState;
+
+  @visibleForTesting
+  bool get hasDrawablePolygons => _hasDrawablePolygons;
 
   void _updateLodForCurrentView() {
     if (_dataset110m == null) {
@@ -553,6 +635,21 @@ class _MapPageState extends State<MapPage> {
     }
     setState(() {
       _debugCandidateCount = count;
+    });
+  }
+
+  void _handlePaintMetrics(_MapPaintMetrics metrics) {
+    _lastPaintMetrics = metrics;
+    if (kReleaseMode || !mounted) {
+      return;
+    }
+    if (_debugFillCount == metrics.filledPolygons &&
+        _debugOutlineOnlyCount == metrics.outlineOnlyPolygons) {
+      return;
+    }
+    setState(() {
+      _debugFillCount = metrics.filledPolygons;
+      _debugOutlineOnlyCount = metrics.outlineOnlyPolygons;
     });
   }
 
@@ -791,6 +888,7 @@ class _MapPageState extends State<MapPage> {
           colorResolver: _colorForLevel,
           geometryToPlace: _geometryToPlace,
           selectedPlaceCode: _selectionData?.placeCode,
+          onMetrics: _handlePaintMetrics,
         );
         final canvas = SizedBox(
           width: _worldSize,
@@ -803,6 +901,7 @@ class _MapPageState extends State<MapPage> {
           maxScale: 20.0,
           panEnabled: true,
           scaleEnabled: true,
+          constrained: false,
           boundaryMargin: EdgeInsets.zero,
           clipBehavior: Clip.none,
           child: canvas,
@@ -868,8 +967,13 @@ class _MapPageState extends State<MapPage> {
               ),
               child: Text(
                 'LOD: $lodLabel\n'
-                'Parsed: $_debugParsedFeatures\n'
-                'Polygons: $_debugDrawnPolygons\n'
+                'Scale: ${_debugScale.toStringAsFixed(2)} '
+                'Tx:${_debugTranslation.dx.toStringAsFixed(1)} '
+                'Ty:${_debugTranslation.dy.toStringAsFixed(1)}\n'
+                'Parsed: $_debugParsedFeatures · '
+                'Polygons: $_debugDrawnPolygons · '
+                'Mapped: $_debugMappedPolygons\n'
+                'Fill: $_debugFillCount · Outline only: $_debugOutlineOnlyCount\n'
                 'Candidates: $_debugCandidateCount',
               ),
             ),
@@ -965,9 +1069,43 @@ class _MapPageState extends State<MapPage> {
               right: 16,
               child: SafeArea(child: MapLegendOverlay(entries: _legendEntries)),
             ),
+            _buildFallbackNotice(),
             if (!kReleaseMode) _buildDebugOverlay(),
             if (_selectionData != null) _buildSelectionSheet(),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackNotice() {
+    final message = _fallbackNoticeText;
+    if (message == null) {
+      return const SizedBox.shrink();
+    }
+    return Positioned(
+      bottom: 16,
+      left: 16,
+      right: 16,
+      child: SafeArea(
+        child: IgnorePointer(
+          ignoring: true,
+          child: Container(
+            key: const Key('map_fallback_notice'),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ),
     );
@@ -981,6 +1119,7 @@ class _FlatMapPainter extends CustomPainter {
     required this.colorResolver,
     required this.geometryToPlace,
     required this.selectedPlaceCode,
+    required this.onMetrics,
   });
 
   final List<MapPolygon> polygons;
@@ -988,30 +1127,41 @@ class _FlatMapPainter extends CustomPainter {
   final Color Function(int) colorResolver;
   final Map<String, String> geometryToPlace;
   final String? selectedPlaceCode;
+  final ValueChanged<_MapPaintMetrics>? onMetrics;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) {
+      onMetrics?.call(_MapPaintMetrics.zero);
       return;
     }
     final fillPaint = Paint()..style = PaintingStyle.fill;
     final scaleX = size.width;
     final scaleY = size.height;
     final strokeScale = (scaleX + scaleY) / 2.0;
+    final fallbackStrokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = const Color(0x884a5568)
+      ..strokeWidth = strokeScale == 0 ? 0 : 1.2 / strokeScale;
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = Colors.white.withValues(alpha: 0.4)
-      ..strokeWidth = strokeScale == 0 ? 0 : 1.0 / strokeScale;
+      ..color = const Color(0xAA0a0a0a)
+      ..strokeWidth = strokeScale == 0 ? 0 : 1.6 / strokeScale;
     final highlightStrokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = Colors.white
       ..strokeWidth = strokeScale == 0 ? 0 : 2.5 / strokeScale;
+    var filledCount = 0;
+    var outlineOnlyCount = 0;
 
     canvas.save();
     canvas.scale(scaleX, scaleY);
     for (final polygon in polygons) {
       final placeCode = geometryToPlace[polygon.geometryId];
+      final path = polygon.path;
       if (placeCode == null) {
+        canvas.drawPath(path, fallbackStrokePaint);
+        outlineOnlyCount++;
         continue;
       }
       final level = levels[placeCode] ?? 0;
@@ -1020,11 +1170,18 @@ class _FlatMapPainter extends CustomPainter {
       fillPaint.color = isSelected
           ? baseColor
           : baseColor.withValues(alpha: 0.85);
-      final path = polygon.path;
       canvas.drawPath(path, fillPaint);
       canvas.drawPath(path, isSelected ? highlightStrokePaint : strokePaint);
+      filledCount++;
     }
     canvas.restore();
+    onMetrics?.call(
+      _MapPaintMetrics(
+        totalPolygons: polygons.length,
+        filledPolygons: filledCount,
+        outlineOnlyPolygons: outlineOnlyCount,
+      ),
+    );
   }
 
   @override
@@ -1032,8 +1189,27 @@ class _FlatMapPainter extends CustomPainter {
     return oldDelegate.polygons != polygons ||
         oldDelegate.levels != levels ||
         oldDelegate.geometryToPlace != geometryToPlace ||
-        oldDelegate.selectedPlaceCode != selectedPlaceCode;
+        oldDelegate.selectedPlaceCode != selectedPlaceCode ||
+        oldDelegate.onMetrics != onMetrics;
   }
+}
+
+class _MapPaintMetrics {
+  const _MapPaintMetrics({
+    required this.totalPolygons,
+    required this.filledPolygons,
+    required this.outlineOnlyPolygons,
+  });
+
+  final int totalPolygons;
+  final int filledPolygons;
+  final int outlineOnlyPolygons;
+
+  static const zero = _MapPaintMetrics(
+    totalPolygons: 0,
+    filledPolygons: 0,
+    outlineOnlyPolygons: 0,
+  );
 }
 
 class _MapErrorView extends StatelessWidget {
