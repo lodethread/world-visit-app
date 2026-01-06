@@ -211,21 +211,25 @@ class MapSelectionSheet extends StatelessWidget {
                   const SizedBox(height: 16),
                 ],
 
-                // Action buttons
+                // Action buttons (7:3 ratio)
                 Row(
                   children: [
-                    Expanded(
+                    Flexible(
+                      flex: 7,
                       child: _PrimaryButton(
                         onPressed: onAddVisit,
-                        icon: Icons.add,
-                        label: '旅行追加',
+                        icon: Icons.add_circle_outline,
+                        label: '追加',
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    _SecondaryButton(
-                      onPressed: onOpenDetail,
-                      icon: Icons.open_in_new,
-                      tooltip: '詳細',
+                    const SizedBox(width: 10),
+                    Flexible(
+                      flex: 3,
+                      child: _SecondaryButton(
+                        onPressed: onOpenDetail,
+                        icon: Icons.format_list_bulleted,
+                        label: '詳細',
+                      ),
                     ),
                   ],
                 ),
@@ -392,26 +396,38 @@ class _SecondaryButton extends StatelessWidget {
   const _SecondaryButton({
     required this.onPressed,
     required this.icon,
-    required this.tooltip,
+    required this.label,
   });
 
   final VoidCallback onPressed;
   final IconData icon;
-  final String tooltip;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: AppTheme.surfaceOverlay,
+    return Material(
+      color: AppTheme.surfaceOverlay,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onPressed,
         borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Icon(icon, color: AppTheme.textPrimary, size: 18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: AppTheme.textPrimary, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
         ),
       ),
