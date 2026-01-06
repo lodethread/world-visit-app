@@ -128,7 +128,7 @@ Path _buildPath(List<_RingData> rings) {
   final path = Path()..fillType = PathFillType.evenOdd;
   for (final ring in rings) {
     if (ring.points.isEmpty) continue;
-    
+
     // Check if this ring crosses the date line
     bool crossesDateLine = false;
     for (int i = 0; i < ring.points.length; i++) {
@@ -139,7 +139,7 @@ Path _buildPath(List<_RingData> rings) {
         break;
       }
     }
-    
+
     if (!crossesDateLine) {
       // Normal ring - draw as usual
       path.moveTo(ring.points.first.dx, ring.points.first.dy);
@@ -161,39 +161,41 @@ void _buildSplitPaths(Path path, List<Offset> points) {
   // Collect segments on each side of the date line
   final leftSegments = <List<Offset>>[];
   final rightSegments = <List<Offset>>[];
-  
+
   var currentSegment = <Offset>[];
   bool currentIsRight = points.first.dx > 0.5;
-  
+
   for (int i = 0; i < points.length; i++) {
     final curr = points[i];
     final next = points[(i + 1) % points.length];
     final currIsRight = curr.dx > 0.5;
-    
+
     currentSegment.add(curr);
-    
+
     // Check if edge to next point crosses date line
     if ((next.dx - curr.dx).abs() > 0.5) {
       // Calculate intersection with date line (x = 0 or x = 1)
-      final t = (currIsRight ? (1.0 - curr.dx) : (0.0 - curr.dx)) / (next.dx - curr.dx + (currIsRight ? 1.0 : -1.0));
+      final t =
+          (currIsRight ? (1.0 - curr.dx) : (0.0 - curr.dx)) /
+          (next.dx - curr.dx + (currIsRight ? 1.0 : -1.0));
       final intersectY = curr.dy + t * (next.dy - curr.dy);
-      
+
       // Add intersection point to current segment
       currentSegment.add(Offset(currIsRight ? 1.0 : 0.0, intersectY));
-      
+
       // Save current segment
       if (currentIsRight) {
         rightSegments.add(currentSegment);
       } else {
         leftSegments.add(currentSegment);
       }
-      
+
       // Start new segment on the other side
       currentSegment = [Offset(currIsRight ? 0.0 : 1.0, intersectY)];
       currentIsRight = !currIsRight;
     }
   }
-  
+
   // Add the last segment
   if (currentSegment.isNotEmpty) {
     if (currentIsRight) {
@@ -202,7 +204,7 @@ void _buildSplitPaths(Path path, List<Offset> points) {
       leftSegments.add(currentSegment);
     }
   }
-  
+
   // Draw left side as a closed path
   if (leftSegments.isNotEmpty) {
     final allLeftPoints = leftSegments.expand((s) => s).toList();
@@ -214,7 +216,7 @@ void _buildSplitPaths(Path path, List<Offset> points) {
       path.close();
     }
   }
-  
+
   // Draw right side as a closed path
   if (rightSegments.isNotEmpty) {
     final allRightPoints = rightSegments.expand((s) => s).toList();

@@ -10,7 +10,12 @@ import 'package:world_visit_app/features/place_picker/place_picker_page.dart';
 import 'package:world_visit_app/features/tag/ui/tag_picker_sheet.dart';
 
 // #region agent log
-void _debugLogEditor(String location, String message, Map<String, dynamic> data, String hypothesisId) {
+void _debugLogEditor(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) {
   final entry = jsonEncode({
     'location': location,
     'message': message,
@@ -161,10 +166,7 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
                 children: [
                   const Text(
                     '以前の旅行から選択',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
                   IconButton(
@@ -250,10 +252,12 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
     try {
       if (_existing == null) {
         // #region agent log
-        _debugLogEditor('visit_editor_page.dart:_save:create', 'Creating new visit', {
-          'placeCode': placeCode,
-          'level': level,
-        }, 'D');
+        _debugLogEditor(
+          'visit_editor_page.dart:_save:create',
+          'Creating new visit',
+          {'placeCode': placeCode, 'level': level},
+          'D',
+        );
         // #endregion
         final record = await _visitRepository.createVisit(
           placeCode: placeCode,
@@ -268,9 +272,12 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
           _selectedTags.map((e) => e.tagId).toList(),
         );
         // #region agent log
-        _debugLogEditor('visit_editor_page.dart:_save:created', 'Visit created', {
-          'visitId': record.visitId,
-        }, 'D');
+        _debugLogEditor(
+          'visit_editor_page.dart:_save:created',
+          'Visit created',
+          {'visitId': record.visitId},
+          'D',
+        );
         // #endregion
       } else {
         final updated = _existing!.copyWith(

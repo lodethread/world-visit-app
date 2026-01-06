@@ -52,7 +52,8 @@ void main() {
     final singleWorldWidth = 4096 * scale;
     // Expected: (viewport.width - singleWorldWidth) / 2 - singleWorldWidth
     // This centers the middle world in the viewport
-    final expectedTx = (viewport.width - singleWorldWidth) / 2 - singleWorldWidth;
+    final expectedTx =
+        (viewport.width - singleWorldWidth) / 2 - singleWorldWidth;
     expect(translation.dx, closeTo(expectedTx, 1e-6));
   });
 }

@@ -965,10 +965,7 @@ class MapPageState extends State<MapPage> {
                   const SizedBox(width: 6),
                   SizedBox(
                     width: 36,
-                    child: Text(
-                      'Lv.$level',
-                      style: theme.textTheme.labelSmall,
-                    ),
+                    child: Text('Lv.$level', style: theme.textTheme.labelSmall),
                   ),
                   SizedBox(
                     width: 28,

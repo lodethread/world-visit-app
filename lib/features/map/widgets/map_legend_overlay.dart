@@ -71,27 +71,18 @@ class _MapLegendOverlayState extends State<MapLegendOverlay>
             child: ScaleTransition(
               scale: _scaleAnimation,
               alignment: Alignment.bottomRight,
-              child: _LegendCard(
-                entries: widget.entries,
-                onClose: _toggle,
-              ),
+              child: _LegendCard(entries: widget.entries, onClose: _toggle),
             ),
           ),
         const SizedBox(height: 8),
-        _LegendFab(
-          expanded: _expanded,
-          onPressed: _toggle,
-        ),
+        _LegendFab(expanded: _expanded, onPressed: _toggle),
       ],
     );
   }
 }
 
 class _LegendFab extends StatelessWidget {
-  const _LegendFab({
-    required this.expanded,
-    required this.onPressed,
-  });
+  const _LegendFab({required this.expanded, required this.onPressed});
 
   final bool expanded;
   final VoidCallback onPressed;

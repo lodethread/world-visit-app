@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Atlassian-inspired dark theme for World Visit app.
-/// 
+///
 /// Based on Atlassian Design System color tokens:
 /// https://atlassian.design/
 class AppTheme {
@@ -10,28 +10,28 @@ class AppTheme {
   // ============================================
   // Color Tokens (Atlassian Dark Theme)
   // ============================================
-  
+
   /// Background colors
   static const Color background = Color(0xFF1D2125);
   static const Color surface = Color(0xFF22272B);
   static const Color surfaceRaised = Color(0xFF2C333A);
   static const Color surfaceOverlay = Color(0xFF38414A);
-  
+
   /// Primary/Accent colors
   static const Color primary = Color(0xFF579DFF);
   static const Color primaryHovered = Color(0xFF85B8FF);
   static const Color primaryPressed = Color(0xFFCCE0FF);
-  
+
   /// Text colors
   static const Color textPrimary = Color(0xFFB6C2CF);
   static const Color textSecondary = Color(0xFF8C9BAB);
   static const Color textDisabled = Color(0xFF596773);
   static const Color textInverse = Color(0xFF1D2125);
-  
+
   /// Border colors
   static const Color border = Color(0xFF38414A);
   static const Color borderFocused = Color(0xFF579DFF);
-  
+
   /// Status colors
   static const Color success = Color(0xFF4BCE97);
   static const Color successSubtle = Color(0xFF1C3329);
@@ -41,15 +41,15 @@ class AppTheme {
   static const Color errorSubtle = Color(0xFF42221F);
   static const Color info = Color(0xFF579DFF);
   static const Color infoSubtle = Color(0xFF1C2B41);
-  
+
   /// Globe/Map specific colors
   static const Color ocean = Color(0xFF3D5A80);
   static const Color globeBackground = Color(0xFF1D2125);
-  
+
   // ============================================
   // Level Colors (for visited countries)
   // ============================================
-  
+
   static const Color level0 = Color(0xFF6B7280); // Unvisited - neutral gray
   static const Color level1 = Color(0xFF60A5FA); // Transit - blue
   static const Color level2 = Color(0xFF34D399); // Brief visit - teal
@@ -60,26 +60,32 @@ class AppTheme {
   /// Returns the color for a given visit level.
   static Color colorForLevel(int level) {
     switch (level) {
-      case 0: return level0;
-      case 1: return level1;
-      case 2: return level2;
-      case 3: return level3;
-      case 4: return level4;
+      case 0:
+        return level0;
+      case 1:
+        return level1;
+      case 2:
+        return level2;
+      case 3:
+        return level3;
+      case 4:
+        return level4;
       case 5:
-      default: return level5;
+      default:
+        return level5;
     }
   }
 
   // ============================================
   // Theme Data
   // ============================================
-  
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       fontFamily: 'NotoSansJP',
-      
+
       // Color Scheme
       colorScheme: const ColorScheme.dark(
         primary: primary,
@@ -91,10 +97,10 @@ class AppTheme {
         error: error,
         onError: textInverse,
       ),
-      
+
       // Scaffold
       scaffoldBackgroundColor: background,
-      
+
       // AppBar
       appBarTheme: const AppBarTheme(
         backgroundColor: surface,
@@ -108,7 +114,7 @@ class AppTheme {
           color: textPrimary,
         ),
       ),
-      
+
       // Navigation Bar
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
@@ -136,7 +142,7 @@ class AppTheme {
           return const IconThemeData(color: textSecondary, size: 24);
         }),
       ),
-      
+
       // Card
       cardTheme: CardThemeData(
         color: surfaceRaised,
@@ -147,14 +153,14 @@ class AppTheme {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      
+
       // List Tile
       listTileTheme: const ListTileThemeData(
         textColor: textPrimary,
         iconColor: textSecondary,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
-      
+
       // Elevated Button
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -162,9 +168,7 @@ class AppTheme {
           foregroundColor: textInverse,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           textStyle: const TextStyle(
             fontFamily: 'NotoSansJP',
             fontSize: 14,
@@ -172,7 +176,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Text Button
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -185,14 +189,12 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       // Icon Button
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          foregroundColor: textSecondary,
-        ),
+        style: IconButton.styleFrom(foregroundColor: textSecondary),
       ),
-      
+
       // Floating Action Button
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,
@@ -200,7 +202,7 @@ class AppTheme {
         elevation: 2,
         shape: CircleBorder(),
       ),
-      
+
       // Bottom Sheet
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: surface,
@@ -209,13 +211,11 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
       ),
-      
+
       // Dialog
       dialogTheme: DialogThemeData(
         backgroundColor: surfaceRaised,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         titleTextStyle: const TextStyle(
           fontFamily: 'NotoSansJP',
           fontSize: 18,
@@ -228,7 +228,7 @@ class AppTheme {
           color: textSecondary,
         ),
       ),
-      
+
       // Chip
       chipTheme: ChipThemeData(
         backgroundColor: surfaceOverlay,
@@ -239,18 +239,16 @@ class AppTheme {
           color: textPrimary,
         ),
         side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
-      
+
       // Divider
       dividerTheme: const DividerThemeData(
         color: border,
         thickness: 1,
         space: 1,
       ),
-      
+
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -269,9 +267,12 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(color: textSecondary),
         hintStyle: const TextStyle(color: textDisabled),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
       ),
-      
+
       // Snack Bar
       snackBarTheme: SnackBarThemeData(
         backgroundColor: surfaceOverlay,
@@ -279,12 +280,10 @@ class AppTheme {
           fontFamily: 'NotoSansJP',
           color: textPrimary,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         behavior: SnackBarBehavior.floating,
       ),
-      
+
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -381,4 +380,3 @@ class AppTheme {
     );
   }
 }
-

@@ -52,18 +52,18 @@ class GlobeMapPainter extends CustomPainter {
 
     // Optional: Add a subtle gradient for 3D effect
     final gradientPaint = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          Colors.white.withValues(alpha: 0.15),
-          Colors.transparent,
-          Colors.black.withValues(alpha: 0.1),
-        ],
-        stops: const [0.0, 0.5, 1.0],
-        center: const Alignment(-0.3, -0.3),
-      ).createShader(Rect.fromCircle(
-        center: center,
-        radius: radius * projection.scale,
-      ));
+      ..shader =
+          RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0.15),
+              Colors.transparent,
+              Colors.black.withValues(alpha: 0.1),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+            center: const Alignment(-0.3, -0.3),
+          ).createShader(
+            Rect.fromCircle(center: center, radius: radius * projection.scale),
+          );
     canvas.drawCircle(center, radius * projection.scale, gradientPaint);
   }
 
@@ -73,7 +73,7 @@ class GlobeMapPainter extends CustomPainter {
   void _drawPolarCaps(Canvas canvas, Offset center, double radius) {
     // Antarctica color - use the same color as level 0 (unvisited land)
     final antarcticaColor = colorResolver(levels['AQ'] ?? 0);
-    
+
     // Draw Antarctica cap (South Pole)
     _drawPolarCap(
       canvas,
@@ -122,16 +122,15 @@ class GlobeMapPainter extends CustomPainter {
     // Clip to globe
     canvas.save();
     canvas.clipPath(
-      Path()..addOval(Rect.fromCircle(
-        center: center,
-        radius: radius * projection.scale,
-      )),
+      Path()..addOval(
+        Rect.fromCircle(center: center, radius: radius * projection.scale),
+      ),
     );
 
     final fillPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = color;
-    
+
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..color = const Color(0xFF2a2a2a)
@@ -159,7 +158,8 @@ class GlobeMapPainter extends CustomPainter {
     final fillPaint = Paint()..style = PaintingStyle.fill;
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..color = const Color(0xFF2a2a2a) // Darker, more visible border
+      ..color =
+          const Color(0xFF2a2a2a) // Darker, more visible border
       ..strokeWidth = 1.2; // Thicker border for visibility
     final highlightStrokePaint = Paint()
       ..style = PaintingStyle.stroke
@@ -169,10 +169,9 @@ class GlobeMapPainter extends CustomPainter {
     // Clip to the globe circle
     canvas.save();
     canvas.clipPath(
-      Path()..addOval(Rect.fromCircle(
-        center: center,
-        radius: radius * projection.scale,
-      )),
+      Path()..addOval(
+        Rect.fromCircle(center: center, radius: radius * projection.scale),
+      ),
     );
 
     // Collect selected country's polygons to draw them last (on top)
@@ -228,7 +227,11 @@ class GlobeMapPainter extends CustomPainter {
   /// Converts polygon rings (in normalized 0-1 coordinates) to a globe-projected Path.
   /// Uses original vertices for maximum detail.
   /// Returns null if the polygon is entirely on the back side of the globe.
-  Path? _projectPolygonRings(List<List<Offset>> rings, Offset center, double radius) {
+  Path? _projectPolygonRings(
+    List<List<Offset>> rings,
+    Offset center,
+    double radius,
+  ) {
     final globePath = Path();
     var hasVisiblePoints = false;
 
@@ -269,4 +272,3 @@ class GlobeMapPainter extends CustomPainter {
         oldDelegate.levels != levels;
   }
 }
-

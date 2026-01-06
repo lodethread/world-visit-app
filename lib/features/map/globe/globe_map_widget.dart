@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:world_visit_app/features/map/data/flat_map_loader.dart';
-import 'package:world_visit_app/features/map/flat_map_geometry.dart' show WebMercatorProjection;
+import 'package:world_visit_app/features/map/flat_map_geometry.dart'
+    show WebMercatorProjection;
 import 'package:world_visit_app/features/map/globe/globe_controller.dart';
 import 'package:world_visit_app/features/map/globe/globe_map_painter.dart';
 
 /// A widget that displays an interactive 3D globe map.
-/// 
+///
 /// Supports:
 /// - Drag to rotate the globe with momentum/inertia
 /// - Pinch to zoom in/out
@@ -119,10 +120,10 @@ class _GlobeMapWidgetState extends State<GlobeMapWidget>
     if (_lastFocalPoint != null) {
       final delta = details.localFocalPoint - _lastFocalPoint!;
       _controller.onDrag(delta.dx, delta.dy);
-      
+
       // Track velocity for inertia
       _velocity = delta;
-      
+
       _lastFocalPoint = details.localFocalPoint;
     }
 

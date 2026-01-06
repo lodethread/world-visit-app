@@ -53,7 +53,9 @@ class MapSelectionSheet extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: AppTheme.surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               border: Border(
                 top: BorderSide(color: AppTheme.border),
                 left: BorderSide(color: AppTheme.border),
@@ -83,7 +85,7 @@ class MapSelectionSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Header row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +132,7 @@ class MapSelectionSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Stats row
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -166,11 +168,7 @@ class MapSelectionSheet extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 1,
-                        height: 36,
-                        color: AppTheme.border,
-                      ),
+                      Container(width: 1, height: 36, color: AppTheme.border),
                       const SizedBox(width: 16),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -196,7 +194,7 @@ class MapSelectionSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Latest visit section
                 if (data.latestVisit != null) ...[
                   const Text(
@@ -212,7 +210,7 @@ class MapSelectionSheet extends StatelessWidget {
                   _LatestVisitCard(visit: data.latestVisit!),
                   const SizedBox(height: 16),
                 ],
-                
+
                 // Action buttons
                 Row(
                   children: [

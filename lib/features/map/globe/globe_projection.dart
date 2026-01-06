@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 /// Orthographic projection for rendering a 3D globe on a 2D canvas.
-/// 
+///
 /// This class handles:
 /// - Converting lat/lon to 3D spherical coordinates
 /// - Applying rotation matrix for globe rotation
@@ -38,10 +38,10 @@ class GlobeProjection {
   }
 
   /// Converts latitude and longitude to 3D Cartesian coordinates on a unit sphere.
-  /// 
+  ///
   /// [lat] Latitude in degrees (-90 to 90)
   /// [lon] Longitude in degrees (-180 to 180)
-  /// 
+  ///
   /// Returns (x, y, z) where:
   /// - x points towards longitude 0, latitude 0
   /// - y points towards the North Pole
@@ -59,7 +59,7 @@ class GlobeProjection {
   }
 
   /// Applies rotation matrix to 3D coordinates.
-  /// 
+  ///
   /// First rotates around Y axis (horizontal rotation),
   /// then rotates around X axis (vertical tilt).
   (double, double, double) applyRotation(double x, double y, double z) {
@@ -81,12 +81,12 @@ class GlobeProjection {
   }
 
   /// Projects a lat/lon point to 2D screen coordinates.
-  /// 
+  ///
   /// [lat] Latitude in degrees
   /// [lon] Longitude in degrees
   /// [center] Center of the globe on screen
   /// [radius] Radius of the globe on screen
-  /// 
+  ///
   /// Returns null if the point is on the back side of the globe (not visible).
   /// Otherwise returns the 2D screen coordinates.
   Offset? project(double lat, double lon, Offset center, double radius) {
@@ -114,7 +114,7 @@ class GlobeProjection {
   }
 
   /// Projects a lat/lon point to 2D, returning both the screen position and visibility.
-  /// 
+  ///
   /// Unlike [project], this always returns a position (for edge interpolation),
   /// along with a boolean indicating if the point is visible.
   (Offset, bool) projectWithVisibility(
@@ -133,10 +133,10 @@ class GlobeProjection {
   }
 
   /// Converts normalized coordinates (0-1 range from flat map) to lat/lon.
-  /// 
+  ///
   /// [nx] Normalized x coordinate (0 = -180°, 1 = 180°)
   /// [ny] Normalized y coordinate (0 = 90°, 1 = -90°) - Web Mercator style
-  /// 
+  ///
   /// Note: This assumes simple equirectangular mapping, not Web Mercator.
   /// For Web Mercator, use [normalizedMercatorToLatLon].
   static (double, double) normalizedToLatLon(double nx, double ny) {
@@ -146,7 +146,7 @@ class GlobeProjection {
   }
 
   /// Converts normalized Web Mercator coordinates to lat/lon.
-  /// 
+  ///
   /// The flat map uses Web Mercator projection where:
   /// - x: 0-1 maps to -180° to 180° longitude
   /// - y: 0-1 maps to ~85° to ~-85° latitude (non-linear)
@@ -164,7 +164,7 @@ class GlobeProjection {
   }
 
   /// Checks if a polygon (defined by a list of lat/lon points) is mostly visible.
-  /// 
+  ///
   /// Returns true if at least one point is on the front side of the globe.
   bool isPolygonVisible(List<(double, double)> points) {
     for (final (lat, lon) in points) {
@@ -178,9 +178,13 @@ class GlobeProjection {
   }
 
   /// Inverse projection: converts screen coordinates to lat/lon.
-  /// 
+  ///
   /// Returns null if the point is outside the visible globe.
-  (double, double)? screenToLatLon(Offset screenPoint, Offset center, double radius) {
+  (double, double)? screenToLatLon(
+    Offset screenPoint,
+    Offset center,
+    double radius,
+  ) {
     // Convert screen coordinates to normalized sphere coordinates
     // Note: x is negated to match the projection (viewing from outside)
     final dx = -(screenPoint.dx - center.dx) / (radius * scale);
@@ -225,4 +229,3 @@ class GlobeProjection {
     return (x2, y2, z2);
   }
 }
-

@@ -14,7 +14,12 @@ import 'package:world_visit_app/features/trips/trip_sort.dart';
 import 'package:world_visit_app/util/normalize.dart';
 
 // #region agent log
-void _debugLogTrips(String location, String message, Map<String, dynamic> data, String hypothesisId) {
+void _debugLogTrips(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) {
   final entry = jsonEncode({
     'location': location,
     'message': message,
@@ -50,7 +55,7 @@ class _TripsPageState extends State<TripsPage> {
   final Set<int> _levelFilters = {};
   final Set<String> _tagFilters = {};
   TripSortOption _sortOption = TripSortOption.recent;
-  
+
   // Stats for summary card
   int _totalScore = 0;
   Map<int, int> _levelCounts = {}; // level -> count of places at that level
@@ -102,19 +107,21 @@ class _TripsPageState extends State<TripsPage> {
       ORDER BY ps.visit_count DESC
       LIMIT 10
     ''');
-    
+
     final topPlaces = <_TopVisitedPlace>[];
     if (topPlacesRows.isNotEmpty) {
       final maxCount = topPlacesRows.first['visit_count'] as int;
       for (final row in topPlacesRows) {
         final count = row['visit_count'] as int;
         if (count == maxCount) {
-          topPlaces.add(_TopVisitedPlace(
-            placeCode: row['place_code'] as String,
-            visitCount: count,
-            nameJa: row['name_ja'] as String?,
-            nameEn: row['name_en'] as String?,
-          ));
+          topPlaces.add(
+            _TopVisitedPlace(
+              placeCode: row['place_code'] as String,
+              visitCount: count,
+              nameJa: row['name_ja'] as String?,
+              nameEn: row['name_en'] as String?,
+            ),
+          );
         } else {
           break;
         }
@@ -273,7 +280,9 @@ class _TripsPageState extends State<TripsPage> {
   }
 
   Widget _buildStatsCard() {
-    final topPlace = _topVisitedPlaces.isNotEmpty ? _topVisitedPlaces.first : null;
+    final topPlace = _topVisitedPlaces.isNotEmpty
+        ? _topVisitedPlaces.first
+        : null;
     final tiedCount = _topVisitedPlaces.length;
 
     return Container(
@@ -282,9 +291,7 @@ class _TripsPageState extends State<TripsPage> {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).dividerColor,
-        ),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -293,10 +300,7 @@ class _TripsPageState extends State<TripsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '経国値',
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                Text('経国値', style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 4),
                 Text(
                   '$_totalScore',
@@ -320,10 +324,7 @@ class _TripsPageState extends State<TripsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '最も訪問した国',
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                Text('最も訪問した国', style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 4),
                 if (topPlace != null) ...[
                   Row(
@@ -338,10 +339,11 @@ class _TripsPageState extends State<TripsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              topPlace.nameJa ?? topPlace.nameEn ?? topPlace.placeCode,
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                              topPlace.nameJa ??
+                                  topPlace.nameEn ??
+                                  topPlace.placeCode,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(

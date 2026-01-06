@@ -20,11 +20,7 @@ class _MainTabsState extends State<MainTabs> {
   @override
   void initState() {
     super.initState();
-    _pages = [
-      MapPage(key: _mapKey),
-      const TripsPage(),
-      const SettingsPage(),
-    ];
+    _pages = [MapPage(key: _mapKey), const TripsPage(), const SettingsPage()];
   }
 
   void _onDestinationSelected(int index) {
@@ -44,12 +40,7 @@ class _MainTabsState extends State<MainTabs> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: AppTheme.border,
-              width: 1,
-            ),
-          ),
+          border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,

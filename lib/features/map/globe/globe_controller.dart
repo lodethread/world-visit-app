@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:world_visit_app/features/map/globe/globe_projection.dart';
 
 /// Controller for managing globe rotation and zoom state.
-/// 
+///
 /// Handles:
 /// - Rotation state (rotationX, rotationY)
 /// - Zoom/scale state
@@ -11,12 +11,13 @@ import 'package:world_visit_app/features/map/globe/globe_projection.dart';
 /// - Pinch gestures to update scale
 class GlobeController extends ChangeNotifier {
   GlobeController({
-    double initialRotationX = 0.3, // Slight tilt to show more of the northern hemisphere
+    double initialRotationX =
+        0.3, // Slight tilt to show more of the northern hemisphere
     double initialRotationY = 0.0, // Facing longitude 0 (Atlantic/Europe)
     double initialScale = 1.0,
-  })  : _rotationX = initialRotationX,
-        _rotationY = initialRotationY,
-        _scale = initialScale;
+  }) : _rotationX = initialRotationX,
+       _rotationY = initialRotationY,
+       _scale = initialScale;
 
   double _rotationX;
   double _rotationY;
@@ -45,13 +46,13 @@ class GlobeController extends ChangeNotifier {
 
   /// Gets the current projection with the current rotation and scale
   GlobeProjection get projection => GlobeProjection(
-        rotationX: _rotationX,
-        rotationY: _rotationY,
-        scale: _scale,
-      );
+    rotationX: _rotationX,
+    rotationY: _rotationY,
+    scale: _scale,
+  );
 
   /// Updates rotation based on a drag delta.
-  /// 
+  ///
   /// [delta] is the drag delta in screen pixels.
   /// Drag moves the globe surface in the same direction as finger movement.
   /// Sensitivity is adjusted based on current scale so that dragging feels
@@ -60,11 +61,11 @@ class GlobeController extends ChangeNotifier {
     // Adjust sensitivity based on scale - when zoomed in, we need less rotation
     // per pixel to keep the surface following the finger
     final sensitivity = baseRotationSensitivity / _scale;
-    
+
     // Horizontal drag: drag right = globe surface moves right
     _rotationY += deltaX * sensitivity;
 
-    // Vertical drag: drag up = see more of the north = globe tilts down  
+    // Vertical drag: drag up = see more of the north = globe tilts down
     _rotationX += deltaY * sensitivity;
     _rotationX = _rotationX.clamp(-maxTiltAngle, maxTiltAngle);
 
@@ -80,7 +81,7 @@ class GlobeController extends ChangeNotifier {
   }
 
   /// Updates scale based on a pinch gesture.
-  /// 
+  ///
   /// [scaleFactor] is the relative scale change (e.g., 1.1 for 10% zoom in).
   void onScale(double scaleFactor) {
     _scale = (_scale * scaleFactor).clamp(minScale, maxScale);
@@ -110,7 +111,7 @@ class GlobeController extends ChangeNotifier {
   }
 
   /// Animates rotation to a target position.
-  /// 
+  ///
   /// This is a simple linear interpolation. For smoother animation,
   /// consider using AnimationController.
   void animateTo({
@@ -132,4 +133,3 @@ class GlobeController extends ChangeNotifier {
     notifyListeners();
   }
 }
-
