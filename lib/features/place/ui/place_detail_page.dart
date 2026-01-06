@@ -135,21 +135,43 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
           : _error != null
           ? Center(child: Text(_error!))
           : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ListTile(
-                  title: Text(data!.nameJa),
-                  subtitle: Text(data.nameEn),
-                ),
+                // Country name - centered
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Column(
+                    children: [
+                      Text(
+                        data!.nameJa,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        data.nameEn,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                // Stats row - centered
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _StatTile(
                         label: 'Max Level',
                         value: data.maxLevel.toString(),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 32),
                       _StatTile(
                         label: 'Visits',
                         value: data.visitCount.toString(),
@@ -157,10 +179,13 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
                     ],
                   ),
                 ),
+                // Action buttons - centered with more top spacing
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: OverflowBar(
-                    spacing: 8,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
                         onPressed: _addVisit,
@@ -175,7 +200,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage> {
                     ],
                   ),
                 ),
-                const Divider(),
+                const Divider(height: 1),
                 Expanded(
                   child: data.visits.isEmpty
                       ? const Center(child: Text('Visitがありません'))
@@ -226,10 +251,20 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        Text(value, style: Theme.of(context).textTheme.headlineSmall),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

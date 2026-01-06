@@ -13,7 +13,7 @@ import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
 import 'package:world_visit_app/features/map/map_viewport_constraints.dart';
 import 'package:world_visit_app/features/map/globe/globe_map_widget.dart';
-import 'package:world_visit_app/features/map/widgets/globe_under_construction.dart';
+import 'package:world_visit_app/features/map/globe/spark_globe_widget.dart';
 import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
@@ -76,6 +76,15 @@ class MapDataException implements Exception {
   String toString() => message;
 }
 
+/// View mode for the globe display
+enum GlobeViewMode {
+  /// Standard globe view with level-based coloring
+  globe,
+
+  /// Spark view with gold sparkling for visited countries
+  spark,
+}
+
 class MapPageState extends State<MapPage> {
   /// Refresh map data from database
   Future<void> refresh() async {
@@ -90,7 +99,8 @@ class MapPageState extends State<MapPage> {
   static const String _kAntarcticaPlaceCode = 'AQ';
   static const String _kAntarcticaGeometryId = '010';
   static const double _kAntarcticaNormalizedThreshold = 0.85;
-  bool _isGlobe = true; // Default to Globe view
+  GlobeViewMode _viewMode = GlobeViewMode.globe; // Default to Globe view
+  bool _showLegend = false; // Legend hidden by default
   late final FlatMapLoader _mapLoader;
   late final Future<Database> Function() _openDatabase;
   final TransformationController _transformationController =
@@ -994,6 +1004,133 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Widget _buildScoreDisplay() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.black.withValues(alpha: 0.7),
+            Colors.black.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withValues(alpha: 0.15),
+            blurRadius: 12,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Icon(Icons.public, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '経国値',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1,
+                ),
+              ),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Text(
+                  '$_totalScore',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendToggle() {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Legend panel (shown when expanded)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          alignment: Alignment.bottomRight,
+          child: _showLegend
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildLevelLegend(),
+                )
+              : const SizedBox.shrink(),
+        ),
+        // Toggle button
+        Material(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.95,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            onTap: () => setState(() => _showLegend = !_showLegend),
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _showLegend ? Icons.expand_more : Icons.expand_less,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Legend',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _addVisitFromSheet() async {
     // #region agent log
     _debugLog('map_page.dart:_addVisitFromSheet', 'Adding visit from sheet', {
@@ -1134,9 +1271,21 @@ class MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildFlatPlaceholder() {
-    return FlatMapUnderConstruction(
-      onExit: () => setState(() => _isGlobe = true),
+  Widget _buildSparkGlobe() {
+    final dataset = _dataset50m ?? _activeDataset;
+    if (dataset == null) {
+      _ensureFineDatasetLoaded();
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SparkGlobeWidget(
+      dataset: dataset,
+      levels: _levels,
+      geometryToPlace: _geometryToPlace,
+      selectedPlaceCode: _selectionData?.placeCode,
+      onCountryLongPressed: (placeCode) {
+        _selectPlace(placeCode);
+      },
     );
   }
 
@@ -1198,7 +1347,7 @@ class MapPageState extends State<MapPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _selectionData == null && !_isGlobe,
+      canPop: _selectionData == null,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
@@ -1207,9 +1356,6 @@ class MapPageState extends State<MapPage> {
           _clearSelection();
           return;
         }
-        if (_isGlobe) {
-          setState(() => _isGlobe = false);
-        }
       },
       child: Scaffold(
         body: Stack(
@@ -1217,70 +1363,63 @@ class MapPageState extends State<MapPage> {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: _isGlobe ? _buildGlobeMap() : _buildFlatPlaceholder(),
+              child: _viewMode == GlobeViewMode.globe
+                  ? _buildGlobeMap()
+                  : _buildSparkGlobe(),
             ),
+            // Score display - centered at top
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(child: Center(child: _buildScoreDisplay())),
+            ),
+            // View mode toggle - top left
             Positioned(
               top: 16,
               left: 16,
               child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '経国値: $_totalScore',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        children: [
-                          TextButton(
-                            onPressed: () => setState(() => _isGlobe = false),
-                            child: Text(
-                              'Flat',
-                              style: TextStyle(
-                                color: _isGlobe
-                                    ? Colors.white70
-                                    : Colors.amberAccent,
-                              ),
-                            ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _viewMode = GlobeViewMode.globe),
+                        child: Text(
+                          'Globe',
+                          style: TextStyle(
+                            color: _viewMode == GlobeViewMode.globe
+                                ? Colors.amberAccent
+                                : Colors.white70,
                           ),
-                          TextButton(
-                            onPressed: () => setState(() => _isGlobe = true),
-                            child: Text(
-                              'Globe',
-                              style: TextStyle(
-                                color: _isGlobe
-                                    ? Colors.amberAccent
-                                    : Colors.white70,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _viewMode = GlobeViewMode.spark),
+                        child: Text(
+                          'Spark',
+                          style: TextStyle(
+                            color: _viewMode == GlobeViewMode.spark
+                                ? Colors.amberAccent
+                                : Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             Positioned(
               bottom: 16,
               right: 16,
-              child: SafeArea(child: _buildLevelLegend()),
+              child: SafeArea(child: _buildLegendToggle()),
             ),
             _buildFallbackNotice(),
             if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),

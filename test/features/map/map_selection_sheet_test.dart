@@ -48,7 +48,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('日本'), findsOneWidget);
-      expect(find.text('旅行追加'), findsOneWidget);
+      expect(find.text('追加'), findsOneWidget);
+      expect(find.text('詳細'), findsOneWidget);
       expect(find.text('Tokyo Stop'), findsOneWidget);
     });
   });
