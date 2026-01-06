@@ -13,7 +13,7 @@ import 'package:world_visit_app/features/map/flat_map_geometry.dart';
 import 'package:world_visit_app/features/map/lod_resolver.dart';
 import 'package:world_visit_app/features/map/map_viewport_constraints.dart';
 import 'package:world_visit_app/features/map/globe/globe_map_widget.dart';
-import 'package:world_visit_app/features/map/widgets/globe_under_construction.dart';
+import 'package:world_visit_app/features/map/globe/spark_globe_widget.dart';
 import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
@@ -76,6 +76,15 @@ class MapDataException implements Exception {
   String toString() => message;
 }
 
+/// View mode for the globe display
+enum GlobeViewMode {
+  /// Standard globe view with level-based coloring
+  globe,
+
+  /// Spark view with gold sparkling for visited countries
+  spark,
+}
+
 class MapPageState extends State<MapPage> {
   /// Refresh map data from database
   Future<void> refresh() async {
@@ -90,7 +99,7 @@ class MapPageState extends State<MapPage> {
   static const String _kAntarcticaPlaceCode = 'AQ';
   static const String _kAntarcticaGeometryId = '010';
   static const double _kAntarcticaNormalizedThreshold = 0.85;
-  bool _isGlobe = true; // Default to Globe view
+  GlobeViewMode _viewMode = GlobeViewMode.globe; // Default to Globe view
   late final FlatMapLoader _mapLoader;
   late final Future<Database> Function() _openDatabase;
   final TransformationController _transformationController =
@@ -1134,9 +1143,21 @@ class MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildFlatPlaceholder() {
-    return FlatMapUnderConstruction(
-      onExit: () => setState(() => _isGlobe = true),
+  Widget _buildSparkGlobe() {
+    final dataset = _dataset50m ?? _activeDataset;
+    if (dataset == null) {
+      _ensureFineDatasetLoaded();
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SparkGlobeWidget(
+      dataset: dataset,
+      levels: _levels,
+      geometryToPlace: _geometryToPlace,
+      selectedPlaceCode: _selectionData?.placeCode,
+      onCountryLongPressed: (placeCode) {
+        _selectPlace(placeCode);
+      },
     );
   }
 
@@ -1198,7 +1219,7 @@ class MapPageState extends State<MapPage> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _selectionData == null && !_isGlobe,
+      canPop: _selectionData == null,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
@@ -1207,9 +1228,6 @@ class MapPageState extends State<MapPage> {
           _clearSelection();
           return;
         }
-        if (_isGlobe) {
-          setState(() => _isGlobe = false);
-        }
       },
       child: Scaffold(
         body: Stack(
@@ -1217,7 +1235,9 @@ class MapPageState extends State<MapPage> {
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(
-              child: _isGlobe ? _buildGlobeMap() : _buildFlatPlaceholder(),
+              child: _viewMode == GlobeViewMode.globe
+                  ? _buildGlobeMap()
+                  : _buildSparkGlobe(),
             ),
             Positioned(
               top: 16,
@@ -1249,22 +1269,24 @@ class MapPageState extends State<MapPage> {
                       child: Row(
                         children: [
                           TextButton(
-                            onPressed: () => setState(() => _isGlobe = false),
+                            onPressed: () =>
+                                setState(() => _viewMode = GlobeViewMode.globe),
                             child: Text(
-                              'Flat',
+                              'Globe',
                               style: TextStyle(
-                                color: _isGlobe
-                                    ? Colors.white70
-                                    : Colors.amberAccent,
+                                color: _viewMode == GlobeViewMode.globe
+                                    ? Colors.amberAccent
+                                    : Colors.white70,
                               ),
                             ),
                           ),
                           TextButton(
-                            onPressed: () => setState(() => _isGlobe = true),
+                            onPressed: () =>
+                                setState(() => _viewMode = GlobeViewMode.spark),
                             child: Text(
-                              'Globe',
+                              'Spark',
                               style: TextStyle(
-                                color: _isGlobe
+                                color: _viewMode == GlobeViewMode.spark
                                     ? Colors.amberAccent
                                     : Colors.white70,
                               ),
