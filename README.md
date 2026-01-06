@@ -4,13 +4,31 @@ Keikoku (world visit) MVP の Flutter クライアントです。すべての地
 
 ## セットアップ
 
-1. Flutter (stable、3.10 以降) を用意します。
+1. Flutter (stable、3.22 以降) を用意します。
 2. ルートで `flutter pub get` を実行して依存関係を解決します。
 3. エミュレーター/実機を起動し、`flutter run` でアプリを起動します。
 
+## 機能概要
+
+### Globe タブ
+- **Globe ビュー**: 3D地球儀で訪問レベル別に国を色分け表示
+- **Spark ビュー**: 訪問済み国が金色にキラキラ輝く演出、背景に星空アニメーション
+- 国を長押しで選択、詳細シートから旅行追加・履歴閲覧が可能
+- 経国値（総合スコア）を画面上部中央にスタイリッシュに表示
+- Legend はトグル式で表示/非表示を切り替え可能
+
+### Trips タブ
+- 旅行履歴の一覧表示
+- タグ・日付でのフィルタリング
+
+### Settings タブ
+- Import/Export (JSON/CSV)
+- Stats（経国値・レベル別集計）
+- テーマ設定
+
 ## CI / ビルド
 
-- Linux ランナーでは `dart format --set-exit-if-changed .`、`flutter analyze`、`flutter test`、`flutter build apk` を実行します。
+- Linux ランナーでは `dart format --set-exit-if-changed .`、`flutter analyze`、`flutter test` を実行します。
 - macOS ランナーでは iOS 向けに `flutter build ios --no-codesign` を実行します。
 - これらに先立ち `flutter pub get` を毎回実行し、依存を同期します。
 
@@ -21,11 +39,13 @@ Keikoku (world visit) MVP の Flutter クライアントです。すべての地
 - CSV: UTF-8 (BOM 任意) でヘッダ必須。`tags` は `;` 区切りで、タグに `;` を含めることはできません。
 - ImportFlow は「ファイル選択 → Preflight → Preview（集計） → 実行 → 結果/issue一覧」を踏襲し、デフォルトは不正行スキップ、厳格モードでは 1 件のエラーで全体中断します。
 
-## Map
+## Map 実装
 
-- Map 画面は Mapbox 依存を持たない CustomPainter 製の平面 Web Mercator マップです。`assets/map/countries_50m.geojson.gz` を gzip 展開し、`geometry_id` → `place_code` のマッピングを通じて place_stats.max_level で色分けします。
+- Map 画面は Mapbox 依存を持たない CustomPainter 製の 3D Globe ビューです。
+- `assets/map/countries_50m.geojson.gz` を gzip 展開し、`geometry_id` → `place_code` のマッピングを通じて place_stats.max_level で色分けします。
+- レベル別カラーは色覚多様性に配慮した Wong パレットを採用（乗継/通過/訪問/観光/居住）。
+- Globe/Spark の2つの表示モードを切り替え可能。
 - Geometry は Natural Earth / world-atlas (TopoJSON) をビルド時に前処理しており、Kosovo など id 未付与の地域には `XK` を割り当てています。
-- Globe トグルは MVP では「Under construction」を表示し、将来の球面実装のプレースホルダーとして扱います。
 
 ## データソース
 
