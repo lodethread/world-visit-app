@@ -57,16 +57,6 @@ class SettingsPage extends StatelessWidget {
               );
             },
           ),
-          if (!kReleaseMode) ...[
-            const Divider(height: 32),
-            const ListTile(title: Text('Debug')),
-            ListTile(
-              leading: const Icon(Icons.bug_report_outlined),
-              title: const Text('Pick place'),
-              subtitle: const Text('Place詳細表示を確認'),
-              onTap: () => _openPlacePicker(context),
-            ),
-          ],
         ],
       ),
     );

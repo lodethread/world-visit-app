@@ -24,14 +24,14 @@ void main() {
       ),
     );
 
-    expect(find.text('Legend'), findsNothing);
-    await tester.tap(find.byType(FloatingActionButton));
+    expect(find.text('Visit Level'), findsNothing);
+    await tester.tap(find.byType(InkWell));
     await tester.pumpAndSettle();
-    expect(find.text('Legend'), findsOneWidget);
-    expect(find.text('訪問実績なし'), findsOneWidget);
+    expect(find.text('Visit Level'), findsOneWidget);
+    expect(find.text('0 未踏'), findsOneWidget);
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byType(InkWell).first);
     await tester.pumpAndSettle();
-    expect(find.text('Legend'), findsNothing);
+    expect(find.text('Visit Level'), findsNothing);
   });
 }

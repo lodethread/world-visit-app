@@ -24,7 +24,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Map'), findsWidgets);
+    expect(find.text('Globe'), findsWidgets);
     expect(find.text('Trips'), findsWidgets);
     expect(find.text('Settings'), findsWidgets);
 

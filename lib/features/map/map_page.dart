@@ -15,13 +15,17 @@ import 'package:world_visit_app/features/map/map_viewport_constraints.dart';
 import 'package:world_visit_app/features/map/globe/globe_map_widget.dart';
 import 'package:world_visit_app/features/map/widgets/globe_under_construction.dart';
 import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
-import 'package:world_visit_app/features/map/widgets/map_legend_overlay.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 
 // #region agent log
-void _debugLog(String location, String message, Map<String, dynamic> data, String hypothesisId) {
+void _debugLog(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) {
   final entry = jsonEncode({
     'location': location,
     'message': message,
@@ -82,6 +86,10 @@ class MapPageState extends State<MapPage> {
 
   static const double _worldSize = 4096.0;
   static const String _mapLoadErrorMessage = '地図データの読み込みに失敗しました';
+  static const bool _kEnableDebugOverlay = false;
+  static const String _kAntarcticaPlaceCode = 'AQ';
+  static const String _kAntarcticaGeometryId = '010';
+  static const double _kAntarcticaNormalizedThreshold = 0.85;
   bool _isGlobe = true; // Default to Globe view
   late final FlatMapLoader _mapLoader;
   late final Future<Database> Function() _openDatabase;
@@ -98,6 +106,7 @@ class MapPageState extends State<MapPage> {
   final Map<String, _PlaceLabel> _labels = {};
   final Map<String, int> _levels = {};
   final Map<String, int> _visitCounts = {};
+  Map<int, int> _levelCounts = const {};
   final Map<String, double> _drawOrders = {};
   Map<String, GeoBounds> _geometryBounds = const <String, GeoBounds>{};
   Map<String, String> _geometryToPlace = const <String, String>{};
@@ -179,6 +188,7 @@ class MapPageState extends State<MapPage> {
       int total = 0;
       final levels = <String, int>{};
       final nonZeroLevels = <String, int>{};
+      final levelCounts = <int, int>{};
       for (final row in statsRows) {
         final level = (row['max_level'] as int?) ?? 0;
         final placeCode = row['place_code'] as String;
@@ -187,15 +197,24 @@ class MapPageState extends State<MapPage> {
         total += level;
         if (level > 0) {
           nonZeroLevels[placeCode] = level;
+          levelCounts[level] = (levelCounts[level] ?? 0) + 1;
         }
       }
       // #region agent log
-      _debugLog('map_page.dart:_loadData:levels', 'Levels loaded from place_stats', {
-        'totalScore': total,
-        'statsRowsCount': statsRows.length,
-        'nonZeroLevelsCount': nonZeroLevels.length,
-        'nonZeroLevels': nonZeroLevels.entries.take(10).map((e) => '${e.key}=${e.value}').toList(),
-      }, 'A');
+      _debugLog(
+        'map_page.dart:_loadData:levels',
+        'Levels loaded from place_stats',
+        {
+          'totalScore': total,
+          'statsRowsCount': statsRows.length,
+          'nonZeroLevelsCount': nonZeroLevels.length,
+          'nonZeroLevels': nonZeroLevels.entries
+              .take(10)
+              .map((e) => '${e.key}=${e.value}')
+              .toList(),
+        },
+        'A',
+      );
       // #endregion
       final selectedPlace = _selectionData?.placeCode;
       if (!mounted) {
@@ -209,6 +228,7 @@ class MapPageState extends State<MapPage> {
         _levels
           ..clear()
           ..addAll(levels);
+        _levelCounts = Map<int, int>.from(levelCounts);
         _visitCounts
           ..clear()
           ..addAll(visitCounts);
@@ -263,6 +283,7 @@ class MapPageState extends State<MapPage> {
     }
     final dataset = _lod == MapLod.fine50m ? _dataset50m : _dataset110m;
     if (dataset == null) {
+      _setFlatFallbackBounds();
       return;
     }
     _setActiveDataset(dataset);
@@ -275,6 +296,20 @@ class MapPageState extends State<MapPage> {
       _debugParsedFeatures = dataset.geometries.length;
     }
     _recomputeDrawableStatsLocked();
+  }
+
+  void _setFlatFallbackBounds() {
+    if (_geometryBounds.isNotEmpty) {
+      return;
+    }
+    _geometryBounds = {
+      _kAntarcticaGeometryId: const GeoBounds(
+        minLon: -180,
+        minLat: -90,
+        maxLon: 180,
+        maxLat: -60,
+      ),
+    };
   }
 
   void _recomputeDrawableStatsLocked() {
@@ -304,6 +339,7 @@ class MapPageState extends State<MapPage> {
   void _activateLod(MapLod lod) {
     final dataset = lod == MapLod.fine50m ? _dataset50m : _dataset110m;
     if (dataset == null) {
+      _setFlatFallbackBounds();
       return;
     }
     setState(() {
@@ -468,7 +504,7 @@ class MapPageState extends State<MapPage> {
   }
 
   void _recordViewportTransform() {
-    if (kReleaseMode || !mounted) {
+    if (kReleaseMode || !mounted || !_kEnableDebugOverlay) {
       return;
     }
     final matrix = _transformationController.value;
@@ -567,13 +603,18 @@ class MapPageState extends State<MapPage> {
   }
 
   List<_PlaceCandidate> _hitTestCandidates(Offset position) {
-    final dataset = _activeDataset;
-    if (dataset == null) {
+    final normalized = _normalizedFromLocal(position);
+    if (normalized == null) {
       _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
-    final normalized = _normalizedFromLocal(position);
-    if (normalized == null) {
+    final dataset = _activeDataset;
+    if (dataset == null) {
+      final fallbackOnly = _buildAntarcticaCandidate(normalized.dy);
+      if (fallbackOnly != null) {
+        _updateCandidateDebug(1);
+        return [fallbackOnly];
+      }
       _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
@@ -587,6 +628,11 @@ class MapPageState extends State<MapPage> {
       });
     }
     if (geometryIds.isEmpty) {
+      final fallback = _buildAntarcticaCandidate(normalized.dy);
+      if (fallback != null) {
+        _updateCandidateDebug(1);
+        return [fallback];
+      }
       _updateCandidateDebug(0);
       return const <_PlaceCandidate>[];
     }
@@ -629,8 +675,33 @@ class MapPageState extends State<MapPage> {
         }
         return a.displayName.compareTo(b.displayName);
       });
+    if (candidates.isEmpty) {
+      final fallback = _buildAntarcticaCandidate(normalized.dy);
+      if (fallback != null) {
+        _updateCandidateDebug(1);
+        return [fallback];
+      }
+    }
     _updateCandidateDebug(candidates.length);
     return candidates;
+  }
+
+  _PlaceCandidate? _buildAntarcticaCandidate(double normalizedY) {
+    if (normalizedY < _kAntarcticaNormalizedThreshold) {
+      return null;
+    }
+    if (!_labels.containsKey(_kAntarcticaPlaceCode)) {
+      return null;
+    }
+    final drawOrder =
+        (_drawOrders[_kAntarcticaGeometryId] ??
+        _activeDataset?.geometries[_kAntarcticaGeometryId]?.drawOrder ??
+        0);
+    return _PlaceCandidate(
+      placeCode: _kAntarcticaPlaceCode,
+      drawOrder: drawOrder,
+      displayName: _displayName(_kAntarcticaPlaceCode),
+    );
   }
 
   Future<String?> _showCandidateSheet(List<_PlaceCandidate> candidates) {
@@ -667,11 +738,11 @@ class MapPageState extends State<MapPage> {
     // Canvas is 3x wide, so divide by _worldSize and then normalize x to 0-1
     var normalizedX = scenePoint.dx / _worldSize;
     final normalizedY = scenePoint.dy / _worldSize;
-    
+
     // Wrap x coordinate to 0-1 range (since we have 3 copies of the world)
     normalizedX = normalizedX % 1.0;
     if (normalizedX < 0) normalizedX += 1.0;
-    
+
     final normalized = Offset(normalizedX, normalizedY);
     if (normalized.dx.isNaN ||
         normalized.dy.isNaN ||
@@ -685,6 +756,10 @@ class MapPageState extends State<MapPage> {
   }
 
   void _updateCandidateDebug(int count) {
+    if (!_kEnableDebugOverlay) {
+      _debugCandidateCount = count;
+      return;
+    }
     if (kReleaseMode || !mounted || _debugCandidateCount == count) {
       _debugCandidateCount = count;
       return;
@@ -696,7 +771,7 @@ class MapPageState extends State<MapPage> {
 
   void _handlePaintMetrics(_MapPaintMetrics metrics) {
     _lastPaintMetrics = metrics;
-    if (kReleaseMode || !mounted) {
+    if (kReleaseMode || !mounted || !_kEnableDebugOverlay) {
       return;
     }
     if (_debugFillCount == metrics.filledPolygons &&
@@ -804,58 +879,120 @@ class MapPageState extends State<MapPage> {
     }
   }
 
-  List<MapLegendEntry> get _legendEntries {
-    return [
-      MapLegendEntry(
-        levelLabel: '0 未踏',
-        description: '未踏',
-        color: _colorForLevel(0),
-      ),
-      MapLegendEntry(
-        levelLabel: '1 乗継（空港のみ）',
-        description: '乗継（空港のみ）',
-        color: _colorForLevel(1),
-      ),
-      MapLegendEntry(
-        levelLabel: '2 乗継（少し観光）',
-        description: '乗継（少し観光）',
-        color: _colorForLevel(2),
-      ),
-      MapLegendEntry(
-        levelLabel: '3 訪問（宿泊なし）',
-        description: '訪問（宿泊なし）',
-        color: _colorForLevel(3),
-      ),
-      MapLegendEntry(
-        levelLabel: '4 観光（宿泊あり）',
-        description: '観光（宿泊あり）',
-        color: _colorForLevel(4),
-      ),
-      MapLegendEntry(
-        levelLabel: '5 居住',
-        description: '居住',
-        color: _colorForLevel(5),
-      ),
-    ];
-  }
-
   Color _colorForLevel(int level) {
-    // Use colors from AppTheme for consistency
+    // Color-blind friendly palette (Wong's palette inspired)
+    // Cool to warm gradient: deeper visits = warmer colors
     switch (level) {
       case 0:
         return const Color(0xFF6B7280); // Neutral gray for unvisited
       case 1:
-        return const Color(0xFF60A5FA); // Blue for transit
+        return const Color(0xFF56B4E9); // Sky blue - transit only
       case 2:
-        return const Color(0xFF34D399); // Teal for brief visit
+        return const Color(0xFF009E73); // Teal/bluish-green - brief visit
       case 3:
-        return const Color(0xFFA78BFA); // Purple for day trip
+        return const Color(0xFFF0E442); // Yellow - day trip
       case 4:
-        return const Color(0xFFFBBF24); // Amber for overnight stay
+        return const Color(0xFFE69F00); // Orange - overnight stay
       case 5:
       default:
-        return const Color(0xFFF472B6); // Pink for residence
+        return const Color(0xFFD55E00); // Vermillion/red-orange - residence
     }
+  }
+
+  String _levelShortLabel(int level) {
+    switch (level) {
+      case 1:
+        return '乗継';
+      case 2:
+        return '通過';
+      case 3:
+        return '訪問';
+      case 4:
+        return '観光';
+      case 5:
+        return '居住';
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildLevelLegend() {
+    final theme = Theme.of(context);
+    return Container(
+      key: const Key('map_level_legend'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Level',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var level = 5; level >= 1; level--)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: _colorForLevel(level),
+                      borderRadius: BorderRadius.circular(3),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    width: 36,
+                    child: Text(
+                      'Lv.$level',
+                      style: theme.textTheme.labelSmall,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 28,
+                    child: Text(
+                      _levelShortLabel(level),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_levelCounts[level] ?? 0}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _addVisitFromSheet() async {
@@ -872,10 +1009,12 @@ class MapPageState extends State<MapPage> {
       ),
     );
     // #region agent log
-    _debugLog('map_page.dart:_addVisitFromSheet:result', 'Visit editor returned', {
-      'result': result,
-      'mounted': mounted,
-    }, 'D');
+    _debugLog(
+      'map_page.dart:_addVisitFromSheet:result',
+      'Visit editor returned',
+      {'result': result, 'mounted': mounted},
+      'D',
+    );
     // #endregion
     if (!mounted || result != true) return;
     _setLoadingState();
@@ -980,9 +1119,7 @@ class MapPageState extends State<MapPage> {
     if (dataset == null) {
       // Trigger loading of 50m data if not already loaded
       _ensureFineDatasetLoaded();
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return GlobeMapWidget(
@@ -1141,12 +1278,12 @@ class MapPageState extends State<MapPage> {
               ),
             ),
             Positioned(
-              top: 16,
+              bottom: 16,
               right: 16,
-              child: SafeArea(child: MapLegendOverlay(entries: _legendEntries)),
+              child: SafeArea(child: _buildLevelLegend()),
             ),
             _buildFallbackNotice(),
-            if (!kReleaseMode) _buildDebugOverlay(),
+            if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),
             if (_selectionData != null) _buildSelectionSheet(),
           ],
         ),
@@ -1211,13 +1348,13 @@ class _FlatMapPainter extends CustomPainter {
       onMetrics?.call(_MapPaintMetrics.zero);
       return;
     }
-    
+
     // Draw ocean background - a pleasant blue color
     final oceanPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = const Color(0xFF4a90d9);
     canvas.drawRect(Offset.zero & size, oceanPaint);
-    
+
     final fillPaint = Paint()..style = PaintingStyle.fill;
     // Canvas is now 3x wide, so each "world" is 1/3 of the width
     final worldWidth = size.width / 3.0;
@@ -1245,13 +1382,14 @@ class _FlatMapPainter extends CustomPainter {
       // Translate to the correct world position and scale
       canvas.translate(worldIndex * worldWidth, 0);
       canvas.scale(scaleX, scaleY);
-      
+
       for (final polygon in polygons) {
         final placeCode = geometryToPlace[polygon.geometryId];
         final path = polygon.path;
         if (placeCode == null) {
           canvas.drawPath(path, fallbackStrokePaint);
-          if (worldIndex == 1) outlineOnlyCount++; // Count only once (center world)
+          if (worldIndex == 1)
+            outlineOnlyCount++; // Count only once (center world)
           continue;
         }
         final level = levels[placeCode] ?? 0;
@@ -1266,7 +1404,7 @@ class _FlatMapPainter extends CustomPainter {
       }
       canvas.restore();
     }
-    
+
     onMetrics?.call(
       _MapPaintMetrics(
         totalPolygons: polygons.length,

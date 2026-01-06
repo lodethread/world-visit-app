@@ -52,6 +52,8 @@ class _GlobeMapWidgetState extends State<GlobeMapWidget>
   double _zoomEndScale = 1.0;
 
   static const _mercator = WebMercatorProjection();
+  static const String _kAntarcticaPlaceCode = 'AQ';
+  static const double _kAntarcticaLatitudeThreshold = -60.0;
 
   @override
   void initState() {
@@ -189,9 +191,10 @@ class _GlobeMapWidgetState extends State<GlobeMapWidget>
 
     // Use the spatial index for efficient lookup
     final candidates = widget.dataset.spatialIndex.query(normalized).toList();
-    
+
     if (candidates.isEmpty) {
-      return null;
+      // Fallback: check if we're in Antarctica region
+      return _checkAntarcticaFallback(lat);
     }
 
     // Only return a country if the point is actually inside its polygon
@@ -208,7 +211,20 @@ class _GlobeMapWidgetState extends State<GlobeMapWidget>
       }
     }
 
-    // No country found at this location (tapped on ocean or empty area)
+    // Fallback: check if we're in Antarctica region (when no polygon match)
+    return _checkAntarcticaFallback(lat);
+  }
+
+  /// Returns Antarctica place code if latitude is below the threshold
+  /// and Antarctica exists in the place data.
+  String? _checkAntarcticaFallback(double lat) {
+    if (lat > _kAntarcticaLatitudeThreshold) {
+      return null;
+    }
+    // Check if Antarctica place code exists in geometryToPlace values
+    if (widget.geometryToPlace.containsValue(_kAntarcticaPlaceCode)) {
+      return _kAntarcticaPlaceCode;
+    }
     return null;
   }
 
