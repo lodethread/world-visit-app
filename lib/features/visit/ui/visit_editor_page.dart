@@ -62,6 +62,7 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
   bool _loading = true;
   Map<String, String> _placeNames = {};
 
+  // ignore: unused_field - retained for potential future DB close
   Database? _db;
   late VisitRepository _visitRepository;
   late TagRepository _tagRepository;

@@ -58,7 +58,6 @@ class _TripsPageState extends State<TripsPage> {
 
   // Stats for summary card
   int _totalScore = 0;
-  Map<int, int> _levelCounts = {}; // level -> count of places at that level
   List<_TopVisitedPlace> _topVisitedPlaces = [];
 
   @override
@@ -89,13 +88,9 @@ class _TripsPageState extends State<TripsPage> {
     // Calculate stats
     final statsRows = await db.query('place_stats');
     int totalScore = 0;
-    final levelCounts = <int, int>{};
     for (final row in statsRows) {
       final level = (row['max_level'] as int?) ?? 0;
       totalScore += level;
-      if (level > 0) {
-        levelCounts[level] = (levelCounts[level] ?? 0) + 1;
-      }
     }
 
     // Get top visited places by visit_count
@@ -138,7 +133,6 @@ class _TripsPageState extends State<TripsPage> {
       _trips = sortedTrips;
       _filtered = filteredTrips;
       _totalScore = totalScore;
-      _levelCounts = levelCounts;
       _topVisitedPlaces = topPlaces;
       _loading = false;
     });

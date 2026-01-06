@@ -16,6 +16,7 @@ class _PlacePickerPageState extends State<PlacePickerPage> {
   final TextEditingController _controller = TextEditingController();
   final List<_PlaceEntry> _entries = [];
   List<_PlaceEntry> _results = [];
+  // ignore: unused_field - retained for potential future DB close
   Database? _db;
   bool _loading = true;
 

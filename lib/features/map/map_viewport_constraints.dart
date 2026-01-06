@@ -59,7 +59,6 @@ class MapViewportConstraints {
   /// Returns (minTx, maxTx) - simply stops at the boundary, no bouncing
   (double, double) _txBounds(Size viewport, double scale) {
     final totalWidth = canvasWidth * scale;
-    final singleWorldWidth = worldSize * scale;
 
     // Horizontal scrolling range across the 3 worlds
     // User can scroll to see any of the 3 worlds, but can't go past the edges

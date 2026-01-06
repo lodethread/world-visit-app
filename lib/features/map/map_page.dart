@@ -1050,6 +1050,7 @@ class MapPageState extends State<MapPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  // ignore: unused_element - retained for potential future flat map view
   Widget _buildFlatMap() {
     final state = _renderState;
     if (state is MapRenderLoading) {

@@ -24,12 +24,14 @@ class PlaceDetailPage extends StatefulWidget {
 }
 
 class _PlaceDetailPageState extends State<PlaceDetailPage> {
+  // ignore: unused_field - retained for potential future DB close
   Database? _db;
   VisitRepository? _visitRepo;
   TagRepository? _tagRepo;
   PlaceDetailData? _data;
   bool _loading = true;
   String? _error;
+  // ignore: unused_field - retained for potential future DB ownership tracking
   bool _ownsDb = true;
 
   @override
