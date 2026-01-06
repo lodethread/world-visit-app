@@ -25,7 +25,7 @@ class _StatsPageState extends State<StatsPage> {
 
   @override
   void dispose() {
-    _db?.close();
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 

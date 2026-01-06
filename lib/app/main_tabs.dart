@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:world_visit_app/app/theme/app_theme.dart';
 import 'package:world_visit_app/features/map/map_page.dart';
 import 'package:world_visit_app/features/settings/settings_page.dart';
 import 'package:world_visit_app/features/trips/trips_page.dart';
@@ -12,8 +13,24 @@ class MainTabs extends StatefulWidget {
 
 class _MainTabsState extends State<MainTabs> {
   int _currentIndex = 0;
+  final GlobalKey<MapPageState> _mapKey = GlobalKey<MapPageState>();
 
-  static const List<Widget> _pages = [MapPage(), TripsPage(), SettingsPage()];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [MapPage(key: _mapKey), const TripsPage(), const SettingsPage()];
+  }
+
+  void _onDestinationSelected(int index) {
+    final previousIndex = _currentIndex;
+    setState(() => _currentIndex = index);
+    // Refresh map when switching to map tab from another tab
+    if (index == 0 && previousIndex != 0) {
+      _mapKey.currentState?.refresh();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,26 +38,33 @@ class _MainTabsState extends State<MainTabs> {
       body: SafeArea(
         child: IndexedStack(index: _currentIndex, children: _pages),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Map',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.travel_explore_outlined),
-            selectedIcon: Icon(Icons.travel_explore),
-            label: 'Trips',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: _onDestinationSelected,
+          height: 64,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.public_outlined),
+              selectedIcon: Icon(Icons.public),
+              label: 'Globe',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.flight_takeoff_outlined),
+              selectedIcon: Icon(Icons.flight_takeoff),
+              label: 'Trips',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.tune_outlined),
+              selectedIcon: Icon(Icons.tune),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }

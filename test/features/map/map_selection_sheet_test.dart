@@ -37,7 +37,6 @@ void main() {
               controller: controller,
               data: data,
               onAddVisit: _noop,
-              onDuplicateVisit: _noop,
               onOpenDetail: _noop,
               onClose: _noop,
             ),
@@ -50,7 +49,6 @@ void main() {
 
       expect(find.text('日本'), findsOneWidget);
       expect(find.text('旅行追加'), findsOneWidget);
-      expect(find.text('直前複製'), findsOneWidget);
       expect(find.text('Tokyo Stop'), findsOneWidget);
     });
   });

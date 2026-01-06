@@ -1,12 +1,31 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-
 import 'package:sqflite/sqflite.dart';
-
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/place_picker/place_picker_page.dart';
 import 'package:world_visit_app/features/tag/ui/tag_picker_sheet.dart';
+
+// #region agent log
+void _debugLogEditor(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) {
+  final entry = jsonEncode({
+    'location': location,
+    'message': message,
+    'data': data,
+    'hypothesisId': hypothesisId,
+    'timestamp': DateTime.now().millisecondsSinceEpoch,
+    'sessionId': 'debug-session',
+  });
+  debugPrint('[DEBUG] $entry');
+}
+// #endregion
 
 class VisitEditorPage extends StatefulWidget {
   const VisitEditorPage({
@@ -42,9 +61,11 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
   bool _loading = true;
   Map<String, String> _placeNames = {};
 
+  // ignore: unused_field - retained for potential future DB close
   Database? _db;
   late VisitRepository _visitRepository;
   late TagRepository _tagRepository;
+  List<String> _previousTitles = [];
 
   @override
   void initState() {
@@ -63,6 +84,20 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
         row['place_code'] as String: row['name_ja'] as String,
     };
 
+    // Load previous visit titles for suggestions
+    final visitRows = await db.query(
+      'visit',
+      columns: ['title'],
+      distinct: true,
+      orderBy: 'created_at DESC',
+      limit: 100,
+    );
+    final previousTitles = visitRows
+        .map((row) => row['title'] as String)
+        .where((title) => title.isNotEmpty)
+        .toSet()
+        .toList();
+
     VisitRecord? visit = widget.initialVisit;
     List<TagRecord> tags = widget.initialTags ?? [];
     if (visit != null) {
@@ -80,6 +115,7 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
       _level = visit?.level ?? widget.initialLevel ?? 3;
       _loading = false;
       _placeNames = placeNames;
+      _previousTitles = previousTitles;
     });
   }
 
@@ -89,7 +125,7 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
     _noteController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
-    _db?.close();
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 
@@ -113,6 +149,56 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
     }
   }
 
+  Future<void> _showPreviousTitles() async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Text(
+                    '以前の旅行から選択',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: scrollController,
+                itemCount: _previousTitles.length,
+                itemBuilder: (context, index) {
+                  final title = _previousTitles[index];
+                  return ListTile(
+                    title: Text(title),
+                    onTap: () => Navigator.pop(context, title),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      setState(() => _titleController.text = selected);
+    }
+  }
+
   Future<void> _selectDate(TextEditingController controller) async {
     final now = DateTime.now();
     final initialDate = DateTime.tryParse(controller.text) ?? now;
@@ -128,6 +214,14 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
   }
 
   Future<void> _save() async {
+    // #region agent log
+    _debugLogEditor('visit_editor_page.dart:_save:entry', 'Save started', {
+      'placeCode': _placeCode,
+      'title': _titleController.text.trim(),
+      'level': _level,
+      'isExisting': _existing != null,
+    }, 'D');
+    // #endregion
     final placeCode = _placeCode;
     if (placeCode == null) {
       _showMessage('Placeを選択してください');
@@ -155,37 +249,68 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
         ? null
         : _noteController.text.trim();
 
-    if (_existing == null) {
-      final record = await _visitRepository.createVisit(
-        placeCode: placeCode,
-        title: title,
-        startDate: startDate,
-        endDate: endDate,
-        level: level,
-        note: note,
-      );
-      await _visitRepository.setTagsForVisit(
-        record.visitId,
-        _selectedTags.map((e) => e.tagId).toList(),
-      );
-    } else {
-      final updated = _existing!.copyWith(
-        placeCode: placeCode,
-        title: title,
-        startDate: startDate,
-        endDate: endDate,
-        level: level,
-        note: note,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _visitRepository.updateVisit(updated);
-      await _visitRepository.setTagsForVisit(
-        updated.visitId,
-        _selectedTags.map((e) => e.tagId).toList(),
-      );
-    }
+    try {
+      if (_existing == null) {
+        // #region agent log
+        _debugLogEditor(
+          'visit_editor_page.dart:_save:create',
+          'Creating new visit',
+          {'placeCode': placeCode, 'level': level},
+          'D',
+        );
+        // #endregion
+        final record = await _visitRepository.createVisit(
+          placeCode: placeCode,
+          title: title,
+          startDate: startDate,
+          endDate: endDate,
+          level: level,
+          note: note,
+        );
+        await _visitRepository.setTagsForVisit(
+          record.visitId,
+          _selectedTags.map((e) => e.tagId).toList(),
+        );
+        // #region agent log
+        _debugLogEditor(
+          'visit_editor_page.dart:_save:created',
+          'Visit created',
+          {'visitId': record.visitId},
+          'D',
+        );
+        // #endregion
+      } else {
+        final updated = _existing!.copyWith(
+          placeCode: placeCode,
+          title: title,
+          startDate: startDate,
+          endDate: endDate,
+          level: level,
+          note: note,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
+        await _visitRepository.updateVisit(updated);
+        await _visitRepository.setTagsForVisit(
+          updated.visitId,
+          _selectedTags.map((e) => e.tagId).toList(),
+        );
+      }
 
-    if (mounted) Navigator.of(context).pop(true);
+      // #region agent log
+      _debugLogEditor('visit_editor_page.dart:_save:pop', 'Popping with true', {
+        'mounted': mounted,
+      }, 'D');
+      // #endregion
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e, st) {
+      // #region agent log
+      _debugLogEditor('visit_editor_page.dart:_save:error', 'Save failed', {
+        'error': e.toString(),
+        'stackTrace': st.toString().split('\n').take(5).toList(),
+      }, 'D');
+      // #endregion
+      _showMessage('保存に失敗しました: $e');
+    }
   }
 
   Future<void> _delete() async {
@@ -245,9 +370,21 @@ class _VisitEditorPageState extends State<VisitEditorPage> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: _pickPlace,
                   ),
-                  TextField(
-                    controller: _titleController,
-                    decoration: const InputDecoration(labelText: 'タイトル'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(labelText: 'タイトル'),
+                        ),
+                      ),
+                      if (_previousTitles.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.history),
+                          tooltip: '以前の旅行から選択',
+                          onPressed: _showPreviousTitles,
+                        ),
+                    ],
                   ),
                   Row(
                     children: [

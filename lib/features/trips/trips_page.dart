@@ -1,18 +1,40 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-
 import 'package:sqflite/sqflite.dart';
-
 import 'package:world_visit_app/data/db/app_database.dart';
 import 'package:world_visit_app/data/db/tag_repository.dart';
 import 'package:world_visit_app/data/db/user_setting_repository.dart';
 import 'package:world_visit_app/data/db/visit_repository.dart';
 import 'package:world_visit_app/features/tag/ui/tag_picker_sheet.dart';
+import 'package:world_visit_app/features/trips/data/trip_list_loader.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 import 'package:world_visit_app/features/trips/trip_sort.dart';
 import 'package:world_visit_app/util/normalize.dart';
 
+// #region agent log
+void _debugLogTrips(
+  String location,
+  String message,
+  Map<String, dynamic> data,
+  String hypothesisId,
+) {
+  final entry = jsonEncode({
+    'location': location,
+    'message': message,
+    'data': data,
+    'hypothesisId': hypothesisId,
+    'timestamp': DateTime.now().millisecondsSinceEpoch,
+    'sessionId': 'debug-session',
+  });
+  debugPrint('[DEBUG] $entry');
+}
+// #endregion
+
 class TripsPage extends StatefulWidget {
-  const TripsPage({super.key});
+  const TripsPage({super.key, this.openDatabase});
+
+  final Future<Database> Function()? openDatabase;
 
   @override
   State<TripsPage> createState() => _TripsPageState();
@@ -24,6 +46,7 @@ class _TripsPageState extends State<TripsPage> {
   List<_TripView> _trips = [];
   List<_TripView> _filtered = [];
   Database? _db;
+  Future<Database> Function()? _openDatabase;
   late VisitRepository _visitRepository;
   late TagRepository _tagRepository;
   UserSettingRepository? _userSettingRepository;
@@ -32,15 +55,20 @@ class _TripsPageState extends State<TripsPage> {
   final Set<String> _tagFilters = {};
   TripSortOption _sortOption = TripSortOption.recent;
 
+  // Stats for summary card
+  int _totalScore = 0;
+  List<_TopVisitedPlace> _topVisitedPlaces = [];
+
   @override
   void initState() {
     super.initState();
+    _openDatabase = widget.openDatabase ?? () => AppDatabase().open();
     _load();
   }
 
   Future<void> _load() async {
-    final db = await AppDatabase().open();
-    _db = db;
+    _db ??= await _openDatabase!.call();
+    final db = _db!;
     _visitRepository = VisitRepository(db);
     _tagRepository = TagRepository(db);
     _userSettingRepository ??= UserSettingRepository(db);
@@ -50,81 +78,51 @@ class _TripsPageState extends State<TripsPage> {
     );
     var sortPreference = tripSortOptionFromStorage(savedSort) ?? _sortOption;
 
-    final placeRows = await db.query('place');
-    final aliasRows = await db.query('place_alias');
-    final visitRows = await db.query('visit');
-    final tagRows = await db.query('tag');
-    final visitTagRows = await db.query('visit_tag');
+    final loader = TripListLoader(db);
+    final source = await loader.load();
+    final trips = source
+        .map((item) => _TripView.fromItem(item))
+        .toList(growable: false);
+
+    // Calculate stats
     final statsRows = await db.query('place_stats');
-
-    final statsByPlace = {
-      for (final row in statsRows)
-        row['place_code'] as String: _PlaceStats(
-          maxLevel: (row['max_level'] as int?) ?? 0,
-          visitCount: (row['visit_count'] as int?) ?? 0,
-        ),
-    };
-
-    final places = <String, _PlaceInfo>{};
-    for (final row in placeRows) {
-      final code = row['place_code'] as String;
-      final stats = statsByPlace[code];
-      places[code] = _PlaceInfo(
-        code: code,
-        nameJa: row['name_ja'] as String,
-        nameEn: row['name_en'] as String,
-        maxLevel: stats?.maxLevel ?? 0,
-        visitCount: stats?.visitCount ?? 0,
-      );
-    }
-    final placeTokens = <String, Set<String>>{};
-    for (final entry in places.entries) {
-      placeTokens[entry.key] = {
-        normalizeText(entry.value.nameJa),
-        normalizeText(entry.value.nameEn),
-      }..removeWhere((value) => value.isEmpty);
-    }
-    for (final row in aliasRows) {
-      final code = row['place_code'] as String;
-      placeTokens.putIfAbsent(code, () => <String>{});
-      placeTokens[code]!.add(normalizeText(row['alias'] as String));
-      placeTokens[code]!.removeWhere((element) => element.isEmpty);
+    int totalScore = 0;
+    for (final row in statsRows) {
+      final level = (row['max_level'] as int?) ?? 0;
+      totalScore += level;
     }
 
-    final tags = {
-      for (final row in tagRows)
-        row['tag_id'] as String: TagRecord.fromMap(row),
-    };
+    // Get top visited places by visit_count
+    final topPlacesRows = await db.rawQuery('''
+      SELECT ps.place_code, ps.visit_count, p.name_ja, p.name_en
+      FROM place_stats ps
+      JOIN place p ON ps.place_code = p.place_code
+      WHERE ps.visit_count > 0
+      ORDER BY ps.visit_count DESC
+      LIMIT 10
+    ''');
 
-    final visitTags = <String, List<TagRecord>>{};
-    for (final row in visitTagRows) {
-      final visitId = row['visit_id'] as String;
-      final tagId = row['tag_id'] as String;
-      final tag = tags[tagId];
-      if (tag == null) continue;
-      visitTags.putIfAbsent(visitId, () => []).add(tag);
+    final topPlaces = <_TopVisitedPlace>[];
+    if (topPlacesRows.isNotEmpty) {
+      final maxCount = topPlacesRows.first['visit_count'] as int;
+      for (final row in topPlacesRows) {
+        final count = row['visit_count'] as int;
+        if (count == maxCount) {
+          topPlaces.add(
+            _TopVisitedPlace(
+              placeCode: row['place_code'] as String,
+              visitCount: count,
+              nameJa: row['name_ja'] as String?,
+              nameEn: row['name_en'] as String?,
+            ),
+          );
+        } else {
+          break;
+        }
+      }
     }
-
-    final trips = <_TripView>[];
-    for (final row in visitRows) {
-      final visit = VisitRecord.fromMap(row);
-      final place = places[visit.placeCode];
-      final view = _TripView(
-        visit: visit,
-        place: place,
-        tags: visitTags[visit.visitId] ?? const [],
-        searchTokens: {
-          normalizeText(visit.title),
-          if (place != null) normalizeText(place.nameJa),
-          if (place != null) normalizeText(place.nameEn),
-          ...?placeTokens[visit.placeCode],
-          ...((visitTags[visit.visitId] ?? const []).map(
-            (tag) => normalizeText(tag.name),
-          )),
-        }..removeWhere((token) => token.isEmpty),
-      );
-      trips.add(view);
-    }
+    // Shuffle to pick random one if tied
+    topPlaces.shuffle();
 
     final sortedTrips = _sortedCopy(trips, sortPreference);
     final filteredTrips = _filterTrips(sortedTrips);
@@ -133,6 +131,8 @@ class _TripsPageState extends State<TripsPage> {
       _sortOption = sortPreference;
       _trips = sortedTrips;
       _filtered = filteredTrips;
+      _totalScore = totalScore;
+      _topVisitedPlaces = topPlaces;
       _loading = false;
     });
   }
@@ -140,7 +140,7 @@ class _TripsPageState extends State<TripsPage> {
   @override
   void dispose() {
     _searchController.dispose();
-    _db?.close();
+    // Note: Do NOT close DB here - it's shared across the app
     super.dispose();
   }
 
@@ -184,6 +184,13 @@ class _TripsPageState extends State<TripsPage> {
     int? initialLevel,
     String? initialNote,
   }) async {
+    // #region agent log
+    _debugLogTrips('trips_page.dart:_openEditor', 'Opening editor', {
+      'hasVisit': visit != null,
+      'initialPlaceCode': initialPlaceCode,
+      'loading': _loading,
+    }, 'E');
+    // #endregion
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => VisitEditorPage(
@@ -196,6 +203,12 @@ class _TripsPageState extends State<TripsPage> {
         ),
       ),
     );
+    // #region agent log
+    _debugLogTrips('trips_page.dart:_openEditor:result', 'Editor returned', {
+      'result': result,
+      'mounted': mounted,
+    }, 'E');
+    // #endregion
     if (!mounted) return;
     if (result == true) {
       setState(() => _loading = true);
@@ -259,6 +272,105 @@ class _TripsPageState extends State<TripsPage> {
     }
   }
 
+  Widget _buildStatsCard() {
+    final topPlace = _topVisitedPlaces.isNotEmpty
+        ? _topVisitedPlaces.first
+        : null;
+    final tiedCount = _topVisitedPlaces.length;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          // Left side: Total score
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('経国値', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 4),
+                Text(
+                  '$_totalScore',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Divider
+          Container(
+            width: 1,
+            height: 50,
+            color: Theme.of(context).dividerColor,
+          ),
+          const SizedBox(width: 16),
+          // Right side: Most visited place
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('最も訪問した国', style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 4),
+                if (topPlace != null) ...[
+                  Row(
+                    children: [
+                      Text(
+                        _countryCodeToFlag(topPlace.placeCode),
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              topPlace.nameJa ??
+                                  topPlace.nameEn ??
+                                  topPlace.placeCode,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${topPlace.visitCount}回${tiedCount > 1 ? ' (他${tiedCount - 1}国/地域)' : ''}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else
+                  Text(
+                    'まだ訪問記録がありません',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Converts ISO 3166-1 alpha-2 country code to flag emoji
+  String _countryCodeToFlag(String countryCode) {
+    if (countryCode.length != 2) return '🏳️';
+    final upper = countryCode.toUpperCase();
+    final flag = String.fromCharCodes(
+      upper.codeUnits.map((c) => c - 0x41 + 0x1F1E6),
+    );
+    return flag;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -296,8 +408,10 @@ class _TripsPageState extends State<TripsPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                // Stats summary card
+                _buildStatsCard(),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -385,6 +499,20 @@ class _TripsPageState extends State<TripsPage> {
   }
 }
 
+class _TopVisitedPlace {
+  _TopVisitedPlace({
+    required this.placeCode,
+    required this.visitCount,
+    this.nameJa,
+    this.nameEn,
+  });
+
+  final String placeCode;
+  final int visitCount;
+  final String? nameJa;
+  final String? nameEn;
+}
+
 class _TripView implements TripSortable {
   _TripView({
     required this.visit,
@@ -393,28 +521,44 @@ class _TripView implements TripSortable {
     required this.searchTokens,
   });
 
+  factory _TripView.fromItem(TripListItem item) {
+    final tokens = <String>{
+      normalizeText(item.visit.title),
+      normalizeText(item.place.nameJa ?? ''),
+      normalizeText(item.place.nameEn ?? ''),
+      normalizeText(item.place.code),
+      ...item.place.aliases.map(normalizeText),
+      ...item.tags.map((tag) => normalizeText(tag.name)),
+    }..removeWhere((token) => token.isEmpty);
+    return _TripView(
+      visit: item.visit,
+      place: item.place,
+      tags: item.tags,
+      searchTokens: tokens,
+    );
+  }
+
   @override
   final VisitRecord visit;
-  final _PlaceInfo? place;
+  final TripPlaceInfo place;
   final List<TagRecord> tags;
   final Set<String> searchTokens;
 
   String? get placeLabel {
-    if (place == null) return null;
-    return place!.nameJa;
+    return place.nameJa ?? place.nameEn;
   }
 
   @override
-  String? get placeNameJa => place?.nameJa;
+  String? get placeNameJa => place.nameJa;
 
   @override
-  String? get placeNameEn => place?.nameEn;
+  String? get placeNameEn => place.nameEn;
 
   @override
-  int get placeMaxLevel => place?.maxLevel ?? 0;
+  int get placeMaxLevel => place.maxLevel;
 
   @override
-  int get placeVisitCount => place?.visitCount ?? 0;
+  int get placeVisitCount => place.visitCount;
 
   bool matchesQuery(String query) {
     if (searchTokens.isEmpty) {
@@ -422,27 +566,4 @@ class _TripView implements TripSortable {
     }
     return searchTokens.any((token) => token.contains(query));
   }
-}
-
-class _PlaceStats {
-  const _PlaceStats({required this.maxLevel, required this.visitCount});
-
-  final int maxLevel;
-  final int visitCount;
-}
-
-class _PlaceInfo {
-  _PlaceInfo({
-    required this.code,
-    required this.nameJa,
-    required this.nameEn,
-    required this.maxLevel,
-    required this.visitCount,
-  });
-
-  final String code;
-  final String nameJa;
-  final String nameEn;
-  final int maxLevel;
-  final int visitCount;
 }

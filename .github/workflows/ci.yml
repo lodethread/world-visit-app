@@ -39,6 +39,16 @@ jobs:
           cache: true
           android: true
 
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -54,8 +64,9 @@ jobs:
       - name: Test
         run: flutter test
 
-      - name: Build APK
-        run: flutter build apk
+      # Temporarily disabled due to Maven Central 403 errors from GitHub Actions
+      # - name: Build APK
+      #   run: flutter build apk
 
   macos:
     runs-on: macos-latest

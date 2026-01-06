@@ -20,15 +20,18 @@ void main() {
   test('clamp enforces minimum scale and translation bounds', () {
     const viewport = Size(600, 1400);
     final minScale = constraints.coverScale(viewport);
+    // Use extreme values that are definitely outside the clamp range
     final transform = constraints.clamp(
       viewport: viewport,
       scale: minScale / 2,
-      translation: const Offset(-2000, -2000),
+      translation: const Offset(-99999, -99999),
     );
     expect(transform.scale, minScale);
+    // With 3x wide canvas, minTx = viewport.width - (4096 * 3 * scale)
+    final totalCanvasWidth = 4096 * 3 * minScale;
     expect(
       transform.translation.dx,
-      closeTo(viewport.width - 4096 * minScale, 1e-6),
+      closeTo(viewport.width - totalCanvasWidth, 1e-6),
     );
     expect(
       transform.translation.dy,
@@ -45,7 +48,12 @@ void main() {
     );
     expect(translation.dx <= 0, isTrue);
     expect(translation.dy <= 0, isTrue);
-    final worldWidth = 4096 * scale;
-    expect(translation.dx, closeTo((viewport.width - worldWidth) / 2, 1e-6));
+    // With 3x canvas, centers on the middle world (offset by one world width)
+    final singleWorldWidth = 4096 * scale;
+    // Expected: (viewport.width - singleWorldWidth) / 2 - singleWorldWidth
+    // This centers the middle world in the viewport
+    final expectedTx =
+        (viewport.width - singleWorldWidth) / 2 - singleWorldWidth;
+    expect(translation.dx, closeTo(expectedTx, 1e-6));
   });
 }
