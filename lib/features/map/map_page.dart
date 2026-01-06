@@ -100,6 +100,7 @@ class MapPageState extends State<MapPage> {
   static const String _kAntarcticaGeometryId = '010';
   static const double _kAntarcticaNormalizedThreshold = 0.85;
   GlobeViewMode _viewMode = GlobeViewMode.globe; // Default to Globe view
+  bool _showLegend = false; // Legend hidden by default
   late final FlatMapLoader _mapLoader;
   late final Future<Database> Function() _openDatabase;
   final TransformationController _transformationController =
@@ -1003,6 +1004,59 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Widget _buildLegendToggle() {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Legend panel (shown when expanded)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          alignment: Alignment.bottomRight,
+          child: _showLegend
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildLevelLegend(),
+                )
+              : const SizedBox.shrink(),
+        ),
+        // Toggle button
+        Material(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.95,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          child: InkWell(
+            onTap: () => setState(() => _showLegend = !_showLegend),
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _showLegend ? Icons.expand_more : Icons.expand_less,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Legend',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _addVisitFromSheet() async {
     // #region agent log
     _debugLog('map_page.dart:_addVisitFromSheet', 'Adding visit from sheet', {
@@ -1302,7 +1356,7 @@ class MapPageState extends State<MapPage> {
             Positioned(
               bottom: 16,
               right: 16,
-              child: SafeArea(child: _buildLevelLegend()),
+              child: SafeArea(child: _buildLegendToggle()),
             ),
             _buildFallbackNotice(),
             if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),
