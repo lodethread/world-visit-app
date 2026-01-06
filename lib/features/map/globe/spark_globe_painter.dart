@@ -36,6 +36,37 @@ class SparkGlobePainter extends CustomPainter {
   static const Color _unvisitedColor = Color(0xFF2D3748);
   static const Color _unvisitedBorder = Color(0xFF1A202C);
 
+  // Star colors
+  static const Color _starWhite = Color(0xFFFFFFFF);
+  static const Color _starGold = Color(0xFFFFD700);
+  static const Color _starBlue = Color(0xFFADD8E6);
+
+  // Pre-generated star positions (seeded for consistency)
+  static final List<_Star> _stars = _generateStars(150);
+
+  static List<_Star> _generateStars(int count) {
+    final random = Random(42); // Fixed seed for consistent star positions
+    final stars = <_Star>[];
+    for (var i = 0; i < count; i++) {
+      stars.add(
+        _Star(
+          // Normalized position (0-1)
+          x: random.nextDouble(),
+          y: random.nextDouble(),
+          // Size varies from tiny to small
+          size: 0.5 + random.nextDouble() * 2.0,
+          // Phase offset for twinkling
+          phaseOffset: random.nextDouble() * 2 * pi,
+          // Brightness base (some stars are naturally brighter)
+          baseBrightness: 0.3 + random.nextDouble() * 0.7,
+          // Color type (0 = white, 1 = gold, 2 = blue)
+          colorType: random.nextInt(10) < 7 ? 0 : (random.nextInt(2) + 1),
+        ),
+      );
+    }
+    return stars;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
@@ -43,9 +74,84 @@ class SparkGlobePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.shortestSide / 2 * 0.9;
 
+    // Draw starfield background first
+    _drawStarfield(canvas, size, center, radius);
+
     _drawOcean(canvas, center, radius);
     _drawPolarCaps(canvas, center, radius);
     _drawCountries(canvas, center, radius);
+  }
+
+  void _drawStarfield(Canvas canvas, Size size, Offset center, double radius) {
+    final starPaint = Paint()..style = PaintingStyle.fill;
+    final globeRadius = radius * projection.scale;
+
+    for (final star in _stars) {
+      // Convert normalized position to screen coordinates
+      final starX = star.x * size.width;
+      final starY = star.y * size.height;
+      final starPos = Offset(starX, starY);
+
+      // Skip stars that would be behind the globe
+      final distanceFromCenter = (starPos - center).distance;
+      if (distanceFromCenter < globeRadius + 5) {
+        continue;
+      }
+
+      // Calculate twinkling brightness
+      final twinklePhase = sparklePhase + star.phaseOffset;
+      final twinkle = (sin(twinklePhase * 2) + 1) / 2; // 0.0 to 1.0
+      final brightness = star.baseBrightness * (0.4 + twinkle * 0.6);
+
+      // Get star color based on type
+      Color baseColor;
+      switch (star.colorType) {
+        case 1:
+          baseColor = _starGold;
+          break;
+        case 2:
+          baseColor = _starBlue;
+          break;
+        default:
+          baseColor = _starWhite;
+      }
+
+      starPaint.color = baseColor.withValues(alpha: brightness);
+
+      // Draw star with glow effect for brighter stars
+      final starSize = star.size * (0.8 + twinkle * 0.4);
+
+      if (brightness > 0.6) {
+        // Draw glow for bright stars
+        final glowPaint = Paint()
+          ..style = PaintingStyle.fill
+          ..color = baseColor.withValues(alpha: brightness * 0.3);
+        canvas.drawCircle(starPos, starSize * 2.5, glowPaint);
+      }
+
+      // Draw star core
+      canvas.drawCircle(starPos, starSize, starPaint);
+
+      // Draw cross sparkle for very bright moments
+      if (brightness > 0.8 && twinkle > 0.7) {
+        final sparklePaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..color = baseColor.withValues(alpha: brightness * 0.5)
+          ..strokeWidth = 0.5;
+
+        final sparkleLength = starSize * 3;
+        canvas.drawLine(
+          Offset(starX - sparkleLength, starY),
+          Offset(starX + sparkleLength, starY),
+          sparklePaint,
+        );
+        canvas.drawLine(
+          Offset(starX, starY - sparkleLength),
+          Offset(starX, starY + sparkleLength),
+          sparklePaint,
+        );
+      }
+    }
   }
 
   void _drawOcean(Canvas canvas, Offset center, double radius) {
@@ -296,4 +402,23 @@ class SparkGlobePainter extends CustomPainter {
         oldDelegate.levels != levels ||
         oldDelegate.sparklePhase != sparklePhase;
   }
+}
+
+/// Data class for a star in the background
+class _Star {
+  const _Star({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.phaseOffset,
+    required this.baseBrightness,
+    required this.colorType,
+  });
+
+  final double x;
+  final double y;
+  final double size;
+  final double phaseOffset;
+  final double baseBrightness;
+  final int colorType;
 }
