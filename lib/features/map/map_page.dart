@@ -1004,6 +1004,80 @@ class MapPageState extends State<MapPage> {
     );
   }
 
+  Widget _buildScoreDisplay() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.black.withValues(alpha: 0.7),
+            Colors.black.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withValues(alpha: 0.15),
+            blurRadius: 12,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Icon(Icons.public, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '経国値',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1,
+                ),
+              ),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Text(
+                  '$_totalScore',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLegendToggle() {
     final theme = Theme.of(context);
     return Column(
@@ -1293,63 +1367,52 @@ class MapPageState extends State<MapPage> {
                   ? _buildGlobeMap()
                   : _buildSparkGlobe(),
             ),
+            // Score display - centered at top
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(child: Center(child: _buildScoreDisplay())),
+            ),
+            // View mode toggle - top left
             Positioned(
               top: 16,
               left: 16,
               child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '経国値: $_totalScore',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        children: [
-                          TextButton(
-                            onPressed: () =>
-                                setState(() => _viewMode = GlobeViewMode.globe),
-                            child: Text(
-                              'Globe',
-                              style: TextStyle(
-                                color: _viewMode == GlobeViewMode.globe
-                                    ? Colors.amberAccent
-                                    : Colors.white70,
-                              ),
-                            ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _viewMode = GlobeViewMode.globe),
+                        child: Text(
+                          'Globe',
+                          style: TextStyle(
+                            color: _viewMode == GlobeViewMode.globe
+                                ? Colors.amberAccent
+                                : Colors.white70,
                           ),
-                          TextButton(
-                            onPressed: () =>
-                                setState(() => _viewMode = GlobeViewMode.spark),
-                            child: Text(
-                              'Spark',
-                              style: TextStyle(
-                                color: _viewMode == GlobeViewMode.spark
-                                    ? Colors.amberAccent
-                                    : Colors.white70,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _viewMode = GlobeViewMode.spark),
+                        child: Text(
+                          'Spark',
+                          style: TextStyle(
+                            color: _viewMode == GlobeViewMode.spark
+                                ? Colors.amberAccent
+                                : Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
