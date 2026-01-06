@@ -922,12 +922,14 @@ class MapPageState extends State<MapPage> {
       key: const Key('map_level_legend'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.95),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.95,
+        ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -957,7 +959,7 @@ class MapPageState extends State<MapPage> {
                       color: _colorForLevel(level),
                       borderRadius: BorderRadius.circular(3),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 0.5,
                       ),
                     ),
@@ -1386,8 +1388,9 @@ class _FlatMapPainter extends CustomPainter {
         final path = polygon.path;
         if (placeCode == null) {
           canvas.drawPath(path, fallbackStrokePaint);
-          if (worldIndex == 1)
+          if (worldIndex == 1) {
             outlineOnlyCount++; // Count only once (center world)
+          }
           continue;
         }
         final level = levels[placeCode] ?? 0;
