@@ -14,8 +14,8 @@ const contestedTerritories = new Set(['HK', 'MO', 'PR', 'TW', 'PS', 'EH', 'XK'])
 const manualPlace = {
   place_code: 'XNC',
   type: 'special',
-  name_en: 'Keikoku',
-  name_ja: 'Keikoku',
+  name_en: 'ExploNation',
+  name_ja: 'ExploNation',
   is_active: false,
   geometry_id: 'XNC',
 };
@@ -116,7 +116,7 @@ function buildAliases(places) {
     aliases[place.place_code] = Array.from(set).filter(Boolean);
   }
   if (!aliases.XNC) {
-    aliases.XNC = ['Keikoku'];
+    aliases.XNC = ['ExploNation'];
   }
   return aliases;
 }

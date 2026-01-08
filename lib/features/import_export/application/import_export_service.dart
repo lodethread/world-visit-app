@@ -13,7 +13,7 @@ import 'package:world_visit_app/features/import_export/model/import_issue.dart';
 import 'package:world_visit_app/features/import_export/model/import_preview.dart';
 import 'package:world_visit_app/util/normalize.dart';
 
-const _jsonFormat = 'keikoku';
+const _jsonFormat = 'explonation';
 const _jsonVersion = 1;
 const _dateRegex = r'^\d{4}-\d{2}-\d{2}$';
 final _datePattern = RegExp(_dateRegex);
@@ -72,7 +72,7 @@ class ImportExportService {
     final payload = await _buildExportPayload();
     final dir = directory ?? await getApplicationDocumentsDirectory();
     final file = File(
-      p.join(dir.path, 'keikoku_export_${_fileTimestamp()}.json'),
+      p.join(dir.path, 'explonation_export_${_fileTimestamp()}.json'),
     );
     await file.writeAsString(jsonEncode(payload.toJson()));
     return file;

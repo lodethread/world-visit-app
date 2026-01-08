@@ -77,6 +77,6 @@ CREATE TABLE IF NOT EXISTS meta (
 
   Future<String> _defaultDbPath() async {
     final databasesPath = await getDatabasesPath();
-    return p.join(databasesPath, 'keikoku.db');
+    return p.join(databasesPath, 'explonation.db');
   }
 }
