@@ -37,10 +37,10 @@ class TripsPage extends StatefulWidget {
   final Future<Database> Function()? openDatabase;
 
   @override
-  State<TripsPage> createState() => _TripsPageState();
+  State<TripsPage> createState() => TripsPageState();
 }
 
-class _TripsPageState extends State<TripsPage> {
+class TripsPageState extends State<TripsPage> {
   static const _kTripsSortSettingKey = 'trips_sort';
   final TextEditingController _searchController = TextEditingController();
   List<_TripView> _trips = [];
@@ -64,6 +64,13 @@ class _TripsPageState extends State<TripsPage> {
     super.initState();
     _openDatabase = widget.openDatabase ?? () => AppDatabase().open();
     _load();
+  }
+
+  /// Refresh the trips list. Called when switching to the Trips tab.
+  Future<void> refresh() async {
+    setState(() => _loading = true);
+    await _load();
+    _applyFilters();
   }
 
   Future<void> _load() async {
