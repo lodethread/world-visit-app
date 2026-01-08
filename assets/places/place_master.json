@@ -2362,8 +2362,8 @@
   {
     "place_code": "XNC",
     "type": "special",
-    "name_en": "Keikoku",
-    "name_ja": "Keikoku",
+    "name_en": "ExploNation",
+    "name_ja": "ExploNation",
     "is_active": false,
     "geometry_id": "XNC",
     "sort_order": 2370,

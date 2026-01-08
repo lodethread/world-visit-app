@@ -29,7 +29,7 @@ void main() {
     'JSON import skips unknown place_code and inserts valid visit',
     () async {
       final payload = jsonEncode({
-        'format': 'keikoku',
+        'format': 'explonation',
         'version': 1,
         'exported_at': '2024-01-01T00:00:00Z',
         'tags': [
@@ -104,7 +104,7 @@ void main() {
     await db.insert('visit_tag', {'visit_id': 'v-up', 'tag_id': 'obsolete'});
 
     final payload = jsonEncode({
-      'format': 'keikoku',
+      'format': 'explonation',
       'version': 1,
       'exported_at': '2024-01-01T00:00:00Z',
       'tags': [

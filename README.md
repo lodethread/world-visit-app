@@ -1,6 +1,6 @@
-# world-visit-app
+# ExploNation
 
-Keikoku (world visit) MVP の Flutter クライアントです。すべての地図・マスターデータをアプリ内に同梱し、オフラインでも旅行ログを編集できます。
+世界を探索しながら色塗りする Flutter アプリです。すべての地図・マスターデータをアプリ内に同梱し、オフラインでも旅行ログを編集できます。
 
 ## セットアップ
 
@@ -32,10 +32,10 @@ Keikoku (world visit) MVP の Flutter クライアントです。すべての地
 - macOS ランナーでは iOS 向けに `flutter build ios --no-codesign` を実行します。
 - これらに先立ち `flutter pub get` を毎回実行し、依存を同期します。
 
-## Import / Export (keikoku v1)
+## Import / Export (explonation v1)
 
 - Settings → Data management から JSON / CSV v1 の ImportFlow を利用できます。
-- JSON: `format="keikoku"`, `version=1`。`place_code` で Places を参照し、未知コードはエラー扱いでスキップします。未定義フィールドは無視されます。
+- JSON: `format="explonation"`, `version=1`。`place_code` で Places を参照し、未知コードはエラー扱いでスキップします。未定義フィールドは無視されます。
 - CSV: UTF-8 (BOM 任意) でヘッダ必須。`tags` は `;` 区切りで、タグに `;` を含めることはできません。
 - ImportFlow は「ファイル選択 → Preflight → Preview（集計） → 実行 → 結果/issue一覧」を踏襲し、デフォルトは不正行スキップ、厳格モードでは 1 件のエラーで全体中断します。
 
