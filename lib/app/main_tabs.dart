@@ -14,13 +14,18 @@ class MainTabs extends StatefulWidget {
 class _MainTabsState extends State<MainTabs> {
   int _currentIndex = 0;
   final GlobalKey<MapPageState> _mapKey = GlobalKey<MapPageState>();
+  final GlobalKey<TripsPageState> _tripsKey = GlobalKey<TripsPageState>();
 
   late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-    _pages = [MapPage(key: _mapKey), const TripsPage(), const SettingsPage()];
+    _pages = [
+      MapPage(key: _mapKey),
+      TripsPage(key: _tripsKey),
+      const SettingsPage(),
+    ];
   }
 
   void _onDestinationSelected(int index) {
@@ -29,6 +34,10 @@ class _MainTabsState extends State<MainTabs> {
     // Refresh map when switching to map tab from another tab
     if (index == 0 && previousIndex != 0) {
       _mapKey.currentState?.refresh();
+    }
+    // Refresh trips when switching to trips tab from another tab
+    if (index == 1 && previousIndex != 1) {
+      _tripsKey.currentState?.refresh();
     }
   }
 
