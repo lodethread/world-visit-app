@@ -502,10 +502,7 @@ class TripsPageState extends State<TripsPage> {
                         ),
                 ),
                 // Banner ad at bottom
-                const SafeArea(
-                  top: false,
-                  child: AdaptiveBannerAdWidget(),
-                ),
+                const SafeArea(top: false, child: AdaptiveBannerAdWidget()),
               ],
             ),
     );

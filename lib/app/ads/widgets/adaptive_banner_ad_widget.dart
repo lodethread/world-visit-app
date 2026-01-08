@@ -42,9 +42,7 @@ class _AdaptiveBannerAdWidgetState extends State<AdaptiveBannerAdWidget> {
         });
       },
       onAdFailedToLoad: (ad, error) {
-        debugPrint(
-          '[AdaptiveBannerAdWidget] Failed to load: ${error.message}',
-        );
+        debugPrint('[AdaptiveBannerAdWidget] Failed to load: ${error.message}');
         ad.dispose();
       },
     );

@@ -1378,64 +1378,64 @@ class MapPageState extends State<MapPage> {
                     right: 0,
                     child: SafeArea(child: Center(child: _buildScoreDisplay())),
                   ),
-            // View mode toggle - top left
-            Positioned(
-              top: 16,
-              left: 16,
-              child: SafeArea(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _viewMode = GlobeViewMode.globe),
-                        child: Text(
-                          'Globe',
-                          style: TextStyle(
-                            color: _viewMode == GlobeViewMode.globe
-                                ? Colors.amberAccent
-                                : Colors.white70,
-                          ),
+                  // View mode toggle - top left
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: SafeArea(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => setState(
+                                () => _viewMode = GlobeViewMode.globe,
+                              ),
+                              child: Text(
+                                'Globe',
+                                style: TextStyle(
+                                  color: _viewMode == GlobeViewMode.globe
+                                      ? Colors.amberAccent
+                                      : Colors.white70,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(
+                                () => _viewMode = GlobeViewMode.spark,
+                              ),
+                              child: Text(
+                                'Spark',
+                                style: TextStyle(
+                                  color: _viewMode == GlobeViewMode.spark
+                                      ? Colors.amberAccent
+                                      : Colors.white70,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _viewMode = GlobeViewMode.spark),
-                        child: Text(
-                          'Spark',
-                          style: TextStyle(
-                            color: _viewMode == GlobeViewMode.spark
-                                ? Colors.amberAccent
-                                : Colors.white70,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: SafeArea(child: _buildLegendToggle()),
-            ),
-            _buildFallbackNotice(),
-            if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: SafeArea(child: _buildLegendToggle()),
+                  ),
+                  _buildFallbackNotice(),
+                  if (_kEnableDebugOverlay && !kReleaseMode)
+                    _buildDebugOverlay(),
                   if (_selectionData != null) _buildSelectionSheet(),
                 ],
               ),
             ),
             // Banner ad at bottom
-            const SafeArea(
-              top: false,
-              child: AdaptiveBannerAdWidget(),
-            ),
+            const SafeArea(top: false, child: AdaptiveBannerAdWidget()),
           ],
         ),
       ),
