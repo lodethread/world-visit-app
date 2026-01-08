@@ -11,6 +11,7 @@ import 'package:world_visit_app/features/trips/data/trip_list_loader.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
 import 'package:world_visit_app/features/trips/trip_sort.dart';
 import 'package:world_visit_app/util/normalize.dart';
+import 'package:world_visit_app/app/ads/widgets/adaptive_banner_ad_widget.dart';
 
 // #region agent log
 void _debugLogTrips(
@@ -500,6 +501,8 @@ class TripsPageState extends State<TripsPage> {
                           },
                         ),
                 ),
+                // Banner ad at bottom
+                const SafeArea(top: false, child: AdaptiveBannerAdWidget()),
               ],
             ),
     );

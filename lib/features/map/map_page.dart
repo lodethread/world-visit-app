@@ -18,6 +18,7 @@ import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
+import 'package:world_visit_app/app/ads/widgets/adaptive_banner_ad_widget.dart';
 
 // #region agent log
 void _debugLog(
@@ -1358,72 +1359,83 @@ class MapPageState extends State<MapPage> {
         }
       },
       child: Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
+        body: Column(
           children: [
-            Positioned.fill(
-              child: _viewMode == GlobeViewMode.globe
-                  ? _buildGlobeMap()
-                  : _buildSparkGlobe(),
-            ),
-            // Score display - centered at top
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(child: Center(child: _buildScoreDisplay())),
-            ),
-            // View mode toggle - top left
-            Positioned(
-              top: 16,
-              left: 16,
-              child: SafeArea(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(999),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: _viewMode == GlobeViewMode.globe
+                        ? _buildGlobeMap()
+                        : _buildSparkGlobe(),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _viewMode = GlobeViewMode.globe),
-                        child: Text(
-                          'Globe',
-                          style: TextStyle(
-                            color: _viewMode == GlobeViewMode.globe
-                                ? Colors.amberAccent
-                                : Colors.white70,
-                          ),
+                  // Score display - centered at top
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(child: Center(child: _buildScoreDisplay())),
+                  ),
+                  // View mode toggle - top left
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    child: SafeArea(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => setState(
+                                () => _viewMode = GlobeViewMode.globe,
+                              ),
+                              child: Text(
+                                'Globe',
+                                style: TextStyle(
+                                  color: _viewMode == GlobeViewMode.globe
+                                      ? Colors.amberAccent
+                                      : Colors.white70,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(
+                                () => _viewMode = GlobeViewMode.spark,
+                              ),
+                              child: Text(
+                                'Spark',
+                                style: TextStyle(
+                                  color: _viewMode == GlobeViewMode.spark
+                                      ? Colors.amberAccent
+                                      : Colors.white70,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _viewMode = GlobeViewMode.spark),
-                        child: Text(
-                          'Spark',
-                          style: TextStyle(
-                            color: _viewMode == GlobeViewMode.spark
-                                ? Colors.amberAccent
-                                : Colors.white70,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: SafeArea(child: _buildLegendToggle()),
+                  ),
+                  _buildFallbackNotice(),
+                  if (_kEnableDebugOverlay && !kReleaseMode)
+                    _buildDebugOverlay(),
+                  if (_selectionData != null) _buildSelectionSheet(),
+                ],
               ),
             ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: SafeArea(child: _buildLegendToggle()),
-            ),
-            _buildFallbackNotice(),
-            if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),
-            if (_selectionData != null) _buildSelectionSheet(),
+            // Banner ad at bottom
+            const SafeArea(top: false, child: AdaptiveBannerAdWidget()),
           ],
         ),
       ),

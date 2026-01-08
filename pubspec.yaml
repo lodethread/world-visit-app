@@ -43,6 +43,7 @@ dependencies:
   sqflite: ^2.3.3
   unorm_dart: ^0.3.2
   uuid: ^4.4.2
+  google_mobile_ads: ^5.2.0
 
 dev_dependencies:
   flutter_test:
