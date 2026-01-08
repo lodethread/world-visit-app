@@ -18,6 +18,7 @@ import 'package:world_visit_app/features/map/widgets/map_gesture_layer.dart';
 import 'package:world_visit_app/features/map/widgets/map_selection_sheet.dart';
 import 'package:world_visit_app/features/place/ui/place_detail_page.dart';
 import 'package:world_visit_app/features/visit/ui/visit_editor_page.dart';
+import 'package:world_visit_app/app/ads/widgets/adaptive_banner_ad_widget.dart';
 
 // #region agent log
 void _debugLog(
@@ -1358,22 +1359,25 @@ class MapPageState extends State<MapPage> {
         }
       },
       child: Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
+        body: Column(
           children: [
-            Positioned.fill(
-              child: _viewMode == GlobeViewMode.globe
-                  ? _buildGlobeMap()
-                  : _buildSparkGlobe(),
-            ),
-            // Score display - centered at top
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(child: Center(child: _buildScoreDisplay())),
-            ),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: _viewMode == GlobeViewMode.globe
+                        ? _buildGlobeMap()
+                        : _buildSparkGlobe(),
+                  ),
+                  // Score display - centered at top
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(child: Center(child: _buildScoreDisplay())),
+                  ),
             // View mode toggle - top left
             Positioned(
               top: 16,
@@ -1423,7 +1427,15 @@ class MapPageState extends State<MapPage> {
             ),
             _buildFallbackNotice(),
             if (_kEnableDebugOverlay && !kReleaseMode) _buildDebugOverlay(),
-            if (_selectionData != null) _buildSelectionSheet(),
+                  if (_selectionData != null) _buildSelectionSheet(),
+                ],
+              ),
+            ),
+            // Banner ad at bottom
+            const SafeArea(
+              top: false,
+              child: AdaptiveBannerAdWidget(),
+            ),
           ],
         ),
       ),
